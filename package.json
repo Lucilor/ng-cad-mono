@@ -100,7 +100,7 @@
     "eslint-plugin-prettier": "^5.1.2",
     "form-data": "^4.0.0",
     "gulp": "^4.0.2",
-    "gulp-zip": "^5.1.0",
+    "gulp-zip": "^6.0.0",
     "jasmine-core": "~5.1.1",
     "jasmine-spec-reporter": "~7.0.0",
     "karma": "~6.4.2",
