@@ -92,7 +92,7 @@
     "angular-animations": "^0.11.0",
     "archiver": "^6.0.1",
     "axios": "^1.6.5",
-    "del": "^6.1.1",
+    "del": "^7.1.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-deprecation": "^2.0.0",
