@@ -63,6 +63,7 @@ export class PrintTableComponent implements OnInit {
     }
     await timeout(1000);
     const toRemove: HTMLElement[] = [];
+    let nextTableBorderTop = false;
     for (const info of tableInfos) {
       const title = info.title;
       if (!title) {
@@ -72,17 +73,27 @@ export class PrintTableComponent implements OnInit {
       if (!(tableEl instanceof HTMLElement)) {
         continue;
       }
+      if (nextTableBorderTop) {
+        nextTableBorderTop = false;
+        tableEl.style.borderTop = "var(--border)";
+      }
       const indexs = 表换行索引?.[title];
-      let j = 0;
+      const rowEls = tableEl.querySelectorAll(`app-table.${title} mat-row`);
+      const rowCount = rowEls.length;
       if (Array.isArray(indexs) && indexs.length > 0) {
         for (const i of indexs) {
-          const rowEl = tableEl.querySelector(`app-table.${title} mat-row:nth-child(${i + j + 1})`);
+          if (i > rowCount) {
+            break;
+          }
+          const rowEl = rowEls.item(i - 1);
           if (rowEl instanceof HTMLElement) {
             const dummyRowEl = document.createElement("div");
             dummyRowEl.classList.add("page-break");
             rowEl.after(dummyRowEl);
             toRemove.push(dummyRowEl);
-            j++;
+            if (i === rowCount) {
+              nextTableBorderTop = true;
+            }
           }
         }
       }

@@ -9,20 +9,3 @@ app-suanliaogongshi {
 app-suanliao-tables {
   height: 100%;
 }
-
-.menu {
-  display: flex;
-  align-items: flex-start;
-  --mat-outlined-button-icon-offset: 0;
-  --mat-outlined-button-icon-spacing: 0;
-  --title-padding: 0 0.5em;
-
-  &.top {
-    height: 100%;
-  }
-}
-
-.toolbar.at-top {
-  height: 100%;
-  align-items: flex-start;
-}

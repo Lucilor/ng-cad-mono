@@ -10,30 +10,25 @@
 </div>
 <div class="flex-110 flex-row">
   @if (showMenuLeft()) {
-    <div class="menu">
-      <app-suanliaogongshi [info]="openCadOptions.suanliaogongshiInfo"></app-suanliaogongshi>
-      <div class="toolbar">
-        <button mat-stroked-button color="primary" (click)="showMenuLeft.set(false)"><mat-icon>navigate_before</mat-icon></button>
-      </div>
-    </div>
+    <app-suanliaogongshi [info]="openCadOptions.suanliaogongshiInfo"></app-suanliaogongshi>
     <mat-divider vertical></mat-divider>
   }
   <div class="flex-column flex-110 scrollbar-container">
     <div class="toolbar">
-      @if (!showMenuLeft()) {
-        <div class="toolbar menu top">
-          <button mat-stroked-button color="primary" (click)="showMenuLeft.set(true)"><mat-icon>navigate_next</mat-icon></button>
-        </div>
-      }
+      <div class="toolbar">
+        <button mat-mini-fab color="primary" (click)="showMenuLeft.set(!showMenuLeft())">
+          <mat-icon>{{ showMenuLeft() ? "navigate_before" : "navigate_next" }}</mat-icon>
+        </button>
+      </div>
       <app-input style="width: 0; flex: 0 1 180px" [info]="suanliaoCadsSearch"></app-input>
       <button mat-raised-button [color]="isSuanliaoCadReversed ? 'accent' : 'primary'" (click)="isSuanliaoCadReversed = true">升序</button>
       <button mat-raised-button [color]="isSuanliaoCadReversed ? 'primary' : 'accent'" (click)="isSuanliaoCadReversed = false">降序</button>
       <div class="flex-110"></div>
-      @if (!showMenuRight()) {
-        <div class="toolbar menu top">
-          <button mat-stroked-button color="primary" (click)="showMenuRight.set(true)"><mat-icon>navigate_before</mat-icon></button>
-        </div>
-      }
+      <div class="toolbar">
+        <button mat-mini-fab color="primary" (click)="showMenuRight.set(!showMenuRight())">
+          <mat-icon>{{ showMenuRight() ? "navigate_next" : "navigate_before" }}</mat-icon>
+        </button>
+      </div>
     </div>
     <ng-scrollbar #cadsScrollbar class="enable-x">
       <div class="cads flex-row">
@@ -55,11 +50,6 @@
   </div>
   @if (data.isKailiao && showMenuRight()) {
     <mat-divider vertical></mat-divider>
-    <div class="menu">
-      <div class="toolbar">
-        <button mat-stroked-button color="primary" (click)="showMenuRight.set(false)"><mat-icon>navigate_next</mat-icon></button>
-      </div>
-      <app-suanliao-tables [suanliaoDataParams]="data.suanliaoDataParams"></app-suanliao-tables>
-    </div>
+    <app-suanliao-tables [suanliaoDataParams]="data.suanliaoDataParams"></app-suanliao-tables>
   }
 </div>

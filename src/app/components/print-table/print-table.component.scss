@@ -73,7 +73,7 @@
     .page-break {
       break-before: page;
       opacity: 0;
-      height: 40px;
+      height: var(--row-min-height);
       & + * {
         border-top: var(--border);
       }
