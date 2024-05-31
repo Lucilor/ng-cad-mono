@@ -2,7 +2,6 @@ import {Component, HostListener, OnInit} from "@angular/core";
 import {MatButtonModule} from "@angular/material/button";
 import {MatCardModule} from "@angular/material/card";
 import {MatExpansionModule} from "@angular/material/expansion";
-import {DomSanitizer, SafeUrl} from "@angular/platform-browser";
 import {ActivatedRoute} from "@angular/router";
 import {imgLoading} from "@app/app.common";
 import {getCadPreview} from "@app/cad/cad-preview";
@@ -21,8 +20,8 @@ export interface Bancai {
     unfolded: CadData;
     num: number;
     code: string;
-    img: SafeUrl;
-    imgLarge?: SafeUrl;
+    img: string;
+    imgLarge?: string;
     zhankaiSize: number[];
   }[];
   id: string;
@@ -60,7 +59,6 @@ export class PiliangjianbanComponent implements OnInit {
     private route: ActivatedRoute,
     private http: CadDataService,
     private status: AppStatusService,
-    private sanitizer: DomSanitizer,
     private spinner: SpinnerService
   ) {}
 
@@ -125,8 +123,7 @@ export class PiliangjianbanComponent implements OnInit {
         fontStyle: {family: "宋体"}
       };
       const collection = this.status.collection$.value;
-      const getImg = async (data: CadData) =>
-        this.sanitizer.bypassSecurityTrustUrl(await getCadPreview(collection, data, {fixedLengthTextSize, config}));
+      const getImg = async (data: CadData) => await getCadPreview(collection, data, {fixedLengthTextSize, config});
       await Promise.all(dataAll.map(async (v) => (v.img = await getImg(v.cad))));
       this.spinner.hide(this.spinner.defaultLoaderId);
       await timeout(0);
