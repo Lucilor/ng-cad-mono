@@ -11,7 +11,7 @@
 <div class="flex-110 flex-row">
   @if (showMenuLeft()) {
     <div class="menu">
-      <app-suanliaogongshi class="suanliaogongshis" [info]="openCadOptions.suanliaogongshiInfo"></app-suanliaogongshi>
+      <app-suanliaogongshi [info]="openCadOptions.suanliaogongshiInfo"></app-suanliaogongshi>
       <div class="toolbar">
         <button mat-stroked-button color="primary" (click)="showMenuLeft.set(false)"><mat-icon>navigate_before</mat-icon></button>
       </div>
