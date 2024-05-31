@@ -28,4 +28,5 @@ jobs:
           yarn install
           yarn build:packages
           yarn build
+          cd scripts
           yarn tsx ./upload.ts

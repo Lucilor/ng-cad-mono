@@ -1,9 +1,13 @@
-.suanliaogongshis {
+app-suanliaogongshi {
   width: 425px;
 }
 
 .cads {
   flex-wrap: wrap;
+}
+
+app-suanliao-tables {
+  height: 100%;
 }
 
 .menu {
@@ -12,6 +16,10 @@
   --mat-outlined-button-icon-offset: 0;
   --mat-outlined-button-icon-spacing: 0;
   --title-padding: 0 0.5em;
+
+  &.top {
+    height: 100%;
+  }
 }
 
 .toolbar.at-top {
