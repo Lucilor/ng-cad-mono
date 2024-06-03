@@ -3,7 +3,7 @@ import {InputInfo} from "@modules/input/components/input.types";
 import {difference, isEqual} from "lodash";
 import {
   MrbcjfzCadInfo,
-  MrbcjfzHuajianInfo,
+  MrbcjfzHuajian,
   MrbcjfzInfo,
   MrbcjfzInfoShowItem,
   mrbcjfzInfoShowItems,
@@ -207,8 +207,7 @@ export const filterCad = (info: MrbcjfzCadInfo) => {
   return true;
 };
 
-export const filterHuajian = (info: MrbcjfzHuajianInfo) => {
-  const data = info.data;
+export const filterHuajian = (data: MrbcjfzHuajian) => {
   if (data.shihuajian || data.bangdinghoubankuanshicad || data.bangdingqianbankuanshicad) {
     return false;
   }

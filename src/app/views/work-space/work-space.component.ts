@@ -34,6 +34,7 @@ export class WorkSpaceComponent implements OnInit {
   showMoreButtons = !environment.production;
   production = environment.production;
   showDefaultWorkDataList = false;
+  editXiaodaohangsDocs = false;
 
   constructor(
     private http: CadDataService,
@@ -51,6 +52,7 @@ export class WorkSpaceComponent implements OnInit {
     const data = await this.http.getData<WorkSpaceData>("jichu/work/getWorkData");
     this.manager.import(data);
     this.defaultWorkDataFormInfo = await this.http.getData<DefaultWorkDataFormInfo | null>("jichu/work/getDefaultWorkDataFormInfo");
+    this.editXiaodaohangsDocs = !!this.defaultWorkDataFormInfo?.xiaodaohangsDocs;
   }
 
   async editType(i: number) {

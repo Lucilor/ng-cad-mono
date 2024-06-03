@@ -700,6 +700,10 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
           e.hideLength = !e.hideLength;
         }
       });
+      const isOnline = this.isOnline;
+      if (isOnline) {
+        await this.http.setCad({collection: isOnline.collection || "cad", cadData: data, force: true}, true);
+      }
       await this.http.setCadImg(data.id, await getCadPreview("cad", data), {silent: true});
       this.status.cadImgToUpdate[data.id] = {t: Date.now()};
       await this.initCadViewer();

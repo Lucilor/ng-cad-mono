@@ -594,7 +594,7 @@ export class MenjiaoDialogComponent implements OnInit {
     updateMenjiaoData(this.formData);
   }
 
-  getMrbcjfzDialogInput(key1: MenjiaoCadType): MrbcjfzDialogInput {
+  async getMrbcjfzDialogInput(key1: MenjiaoCadType): Promise<MrbcjfzDialogInput> {
     const {componentLrsj} = this.data;
     if (!componentLrsj) {
       return {id: -1, table: ""};
@@ -602,6 +602,7 @@ export class MenjiaoDialogComponent implements OnInit {
     const data = this.formData;
     const morenbancai = cloneDeep(data[key1].板材分组);
     const cads = data[key1].算料CAD.map((v) => new CadData(v.json));
+    await componentLrsj.updateHuajians();
     const huajians = componentLrsj.filterHuajians(data[key1]);
     return {
       id: -1,
@@ -619,11 +620,16 @@ export class MenjiaoDialogComponent implements OnInit {
 
   async editBcfz(key1: MenjiaoCadType) {
     const result = await openMrbcjfzDialog(this.dialog, {
-      data: this.getMrbcjfzDialogInput(key1)
+      data: await this.getMrbcjfzDialogInput(key1)
     });
     if (result) {
       this.formData[key1].板材分组 = result.data.默认板材;
-      await this.validate();
+      console.log(result);
+      if (result.submit2) {
+        await this.submit(false);
+      } else {
+        await this.validate();
+      }
     }
   }
 
@@ -778,7 +784,7 @@ export class MenjiaoDialogComponent implements OnInit {
         const mrbcjfzResult = await openMrbcjfzDialog(this.dialog, {
           width: "0",
           height: "0",
-          data: {...this.getMrbcjfzDialogInput(key1), dryRun: true}
+          data: {...(await this.getMrbcjfzDialogInput(key1)), dryRun: true}
         });
         if (mrbcjfzResult && mrbcjfzResult.errors.length > 0) {
           errors2.push("检查板材分组");

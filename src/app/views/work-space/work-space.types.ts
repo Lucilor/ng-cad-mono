@@ -23,11 +23,20 @@ export interface WorkSpaceFavoriteType {
 export interface DefaultWorkDataFormInfo {
   defaultWorkDataPathKeys: DefaultWorkDataFormInfoItem;
   jueses: DefaultWorkDataFormInfoItem;
+  xiaodaohangsDocs?: XiaodaohangDocs[];
 }
 export interface DefaultWorkDataFormInfoItem {
   labelSet: string;
   labelUnset: string;
   options: OptionsDataData[];
+}
+export interface XiaodaohangDocs {
+  xiaodaohang: string;
+  docs: XiaodaohangDoc[];
+}
+export interface XiaodaohangDoc {
+  name: string;
+  url: string;
 }
 
 export interface DefaultWorkDataListItem {

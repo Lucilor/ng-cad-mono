@@ -19,6 +19,7 @@ import {
   setGlobal,
   splitOptions
 } from "@app/app.common";
+import {filterHuajian} from "@app/views/mrbcjfz/mrbcjfz.utils";
 import {AboutComponent} from "@components/about/about.component";
 import {openCadListDialog} from "@components/dialogs/cad-list/cad-list.component";
 import {openZixuanpeijianDialog} from "@components/dialogs/zixuanpeijian/zixuanpeijian.component";
@@ -1345,7 +1346,7 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     if (huajianIds.size > 0) {
       this.huajians = await this.http.queryMySql<MrbcjfzHuajian>({
         table: "p_huajian",
-        fields: ["vid", "mingzi", "xiaotu"],
+        fields: ["vid", "mingzi", "xiaotu", "shihuajian"],
         filter: {where_in: {vid: Array.from(huajianIds)}}
       });
     } else {
@@ -1363,7 +1364,7 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     }
     const menshans = this.menshans.filter((v) => xiaoguotuValues.has(v.name));
     const huajianIds = this.getHuajianIds(menshans);
-    return this.huajians.filter((v) => huajianIds.has(v.vid));
+    return this.huajians.filter((v) => huajianIds.has(v.vid) && filterHuajian(v));
   }
 
   async purgeXinghaos() {

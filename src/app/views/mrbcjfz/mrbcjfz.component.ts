@@ -251,7 +251,7 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
         const huajiansToRemove: MrbcjfzHuajianInfo[] = [];
         data.huajians.map((v) => {
           const item: MrbcjfzHuajianInfo = {data: v, id: String(v.vid)};
-          if (filterHuajian(item)) {
+          if (filterHuajian(item.data)) {
             this.huajians[item.id] = item;
           } else {
             huajiansToRemove.push(item);
@@ -503,7 +503,7 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
     return errorMsg;
   }
 
-  async submit() {
+  async submit(submit2?: boolean) {
     const {xinghao, table, isFromOrder} = this;
     let result = false;
     if (!xinghao) {
@@ -533,7 +533,7 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
         result = await this.http.tableUpdate({table, data}, {spinner: this.loaderId});
       }
     }
-    this.dataSubmit.emit({data: this.xinghao, errors});
+    this.dataSubmit.emit({data: this.xinghao, errors, submit2});
     return result;
   }
 

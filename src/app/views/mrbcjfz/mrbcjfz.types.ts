@@ -98,4 +98,5 @@ export interface MrbcjfzInputData {
 export interface MrbcjfzDataSubmitEvent {
   data: MrbcjfzXinghaoInfo;
   errors: string[];
+  submit2?: boolean;
 }

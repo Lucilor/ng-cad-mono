@@ -5,6 +5,9 @@
   <div class="flex-110"></div>
   <mat-divider class="placeholder large"></mat-divider>
   @if (inputData || !isFromOrder) {
+    @if (inputData) {
+      <button mat-raised-button color="primary" (click)="submit(true)">保存并关闭</button>
+    }
     <button mat-raised-button color="primary" (click)="submit()">提交</button>
     @if (closeable) {
       <button mat-raised-button color="primary" (click)="close()">关闭</button>
