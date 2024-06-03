@@ -2,7 +2,7 @@
   "trailingComma": "none",
   "bracketSpacing": false,
   "plugins": ["@trivago/prettier-plugin-sort-imports"],
-  "importOrder": ["zone.js/testing", "<THIRD_PARTY_MODULES>", "^[./]"],
+  "importOrder": ["<THIRD_PARTY_MODULES>", "^[./]"],
   "importOrderSortSpecifiers": true,
   "importOrderGroupNamespaceSpecifiers": true,
   "importOrderCaseInsensitive": true,

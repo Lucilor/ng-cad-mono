@@ -43,6 +43,10 @@ button {
       background-color: red;
     }
   }
+
+  app-cad-image {
+    --cad-image-height: auto !important;
+  }
 }
 
 .mat-expansion-panel {

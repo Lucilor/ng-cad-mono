@@ -5,7 +5,6 @@ import {MatButtonModule} from "@angular/material/button";
 import {MatDialog} from "@angular/material/dialog";
 import {MatDividerModule} from "@angular/material/divider";
 import {MatSlideToggleModule} from "@angular/material/slide-toggle";
-import {DomSanitizer} from "@angular/platform-browser";
 import {ActivatedRoute} from "@angular/router";
 import {getOrderBarcode, imgCadEmpty, imgEmpty, imgLoading, remoteFilePath, session, setGlobal} from "@app/app.common";
 import {CadPreviewParams, getCadPreview} from "@app/cad/cad-preview";
@@ -127,7 +126,6 @@ export class DingdanbiaoqianComponent implements OnInit {
     private route: ActivatedRoute,
     private http: CadDataService,
     private status: AppStatusService,
-    private sanitizer: DomSanitizer,
     private spinner: SpinnerService,
     private message: MessageService,
     private calc: CalcService,
@@ -290,8 +288,7 @@ export class DingdanbiaoqianComponent implements OnInit {
         previewParams2.fixedMtextSize = 28;
         delete previewParams2.maxZoom;
       }
-      const imgUrl = await getCadPreview(collection, data, previewParams2);
-      return this.sanitizer.bypassSecurityTrustUrl(imgUrl);
+      return await getCadPreview(collection, data, previewParams2);
     };
     const {showCadSmallImg, showCadLargeImg} = this.config;
     const imgLargeSize = [innerWidth * 0.85, innerHeight * 0.85] as [number, number];

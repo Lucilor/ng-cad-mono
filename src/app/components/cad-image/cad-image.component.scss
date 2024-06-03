@@ -4,10 +4,8 @@
   align-items: center;
 }
 
-app-image ::ng-deep {
-  img {
-    width: var(--cad-image-width);
-    height: var(--cad-image-height);
-    background-color: var(--cad-image-background-color);
-  }
+app-image {
+  width: var(--cad-image-width);
+  height: var(--cad-image-height);
+  background-color: var(--cad-image-background-color);
 }

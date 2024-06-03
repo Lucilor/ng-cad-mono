@@ -1,4 +1,3 @@
-import {SafeUrl} from "@angular/platform-browser";
 import {Formulas} from "@app/utils/calc";
 import {FormulaInfo} from "@components/formulas/formulas.component";
 import {CadData} from "@lucilor/cad-viewer";
@@ -7,15 +6,15 @@ import {Properties} from "csstype";
 
 export interface Order {
   code: string;
-  开启锁向示意图?: {data: CadData; img: SafeUrl; style: Properties};
-  配合框?: {data: CadData; img: SafeUrl; style: Properties}[];
+  开启锁向示意图?: {data: CadData; img: string; style: Properties};
+  配合框?: {data: CadData; img: string; style: Properties}[];
   materialResult?: Formulas;
   cads: {
     houtaiId: string;
     data: CadData;
     isLarge: boolean;
-    img: SafeUrl;
-    imgLarge?: SafeUrl;
+    img: string;
+    imgLarge?: string;
     imgSize: [number, number];
     style: Properties;
     imgStyle: Properties;
