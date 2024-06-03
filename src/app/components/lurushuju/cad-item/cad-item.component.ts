@@ -402,7 +402,7 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
   async refreshMuban() {
     await this.getMubanData();
     if (this.mubanData) {
-      this.status.cadImgToUpdate[this.mubanData.id] = {t: Date.now()};
+      this.status.addCadImgToUpdate(this.mubanData.id);
     }
     await this.initMubanViewer();
   }
@@ -705,7 +705,7 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
         await this.http.setCad({collection: isOnline.collection || "cad", cadData: data, force: true}, true);
       }
       await this.http.setCadImg(data.id, await getCadPreview("cad", data), {silent: true});
-      this.status.cadImgToUpdate[data.id] = {t: Date.now()};
+      this.status.addCadImgToUpdate(data.id);
       await this.initCadViewer();
     };
     if (cad instanceof CadData) {

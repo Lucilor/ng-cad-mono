@@ -39,8 +39,9 @@ const imgLoading = "assets/images/loading.gif";
   imports: []
 })
 export class ImageComponent {
-  private elRef = inject<ElementRef<HTMLElement>>(ElementRef);
   private cd = inject(ChangeDetectorRef);
+  private elRef = inject<ElementRef<HTMLElement>>(ElementRef);
+
   @HostBinding("class") class: string[] = [];
 
   src = input.required<string | undefined>();
