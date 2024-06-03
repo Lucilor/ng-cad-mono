@@ -14,6 +14,7 @@ describe("ImageComponent", () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(ImageComponent);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput("src", "test");
     fixture.detectChanges();
   });
 
