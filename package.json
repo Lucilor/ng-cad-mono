@@ -53,7 +53,7 @@
     "ng-recaptcha": "^13.2.1",
     "ngx-color": "^9.0.0",
     "ngx-infinite-scroll": "^18.0.0",
-    "ngx-quill": "^26.0.2",
+    "ngx-quill": "^26.0.4",
     "ngx-scrollbar": "^15.0.1",
     "ngx-ui-loader": "^13.0.0",
     "pdfmake": "^0.2.10",
