@@ -61,7 +61,7 @@ export class AppComponent {
           return null;
         }
       },
-      {type: "boolean", label: "清除参数", radio: true, model: {data, key: "clear"}}
+      {type: "boolean", label: "清除参数", appearance: "switch", model: {data, key: "clear"}}
     ]);
     if (form) {
       this.status.changeProject(form.项目缩写, form.清除参数);

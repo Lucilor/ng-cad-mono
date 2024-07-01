@@ -1,8 +1,21 @@
 import {animate, style, transition, trigger} from "@angular/animations";
-import {coerceBooleanProperty} from "@angular/cdk/coercion";
-import {Component, ElementRef, EventEmitter, HostBinding, Input, Output, ViewChild} from "@angular/core";
-import {SafeUrl} from "@angular/platform-browser";
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  HostBinding,
+  inject,
+  input,
+  output,
+  signal,
+  viewChild
+} from "@angular/core";
 import {timeout} from "@lucilor/utils";
+import {Property} from "csstype";
+import {ImageEvent} from "./image.component.types";
 
 const imgEmpty = "assets/images/empty.jpg";
 const imgLoading = "assets/images/loading.gif";
@@ -26,121 +39,125 @@ const imgLoading = "assets/images/loading.gif";
     ])
   ],
   standalone: true,
-  imports: []
+  imports: [],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ImageComponent {
-  private _src?: string | SafeUrl;
-  @Input()
-  get src() {
-    return this._src;
-  }
-  set src(value) {
-    this._src = value;
-    if (value) {
-      this.loading = true;
-      this._src2 = "";
-    } else {
-      this.onError();
-    }
-  }
-  private _src2 = "";
+  private cd = inject(ChangeDetectorRef);
+  private elRef = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  private _bigPicSrc?: string | SafeUrl;
-  @Input()
-  get bigPicSrc() {
-    return this._bigPicSrc;
-  }
-  set bigPicSrc(value) {
-    this._bigPicSrc = value;
-  }
-
-  private _prefix?: string;
-  @Input()
-  get prefix() {
-    return this._prefix;
-  }
-  set prefix(value) {
-    if (this._prefix !== value) {
-      this._prefix = value;
-      this.loading = true;
-      this._src2 = "";
-    }
-  }
-
-  private _control = false;
-  @Input()
-  get control() {
-    return this._control;
-  }
-  set control(value: boolean | string) {
-    this._control = coerceBooleanProperty(value);
-  }
-  loading = true;
-  @Input() loadingSrc = imgLoading;
-  @Input() emptySrc = imgEmpty;
-  @Output() imgLoad = new EventEmitter();
-  @Output() imgError = new EventEmitter();
-  @Output() imgEnd = new EventEmitter();
-  bigPicVisible = false;
-  bigPicClass = ["big-pic"];
-  @ViewChild("bigPicDiv", {read: ElementRef}) bigPicDiv?: ElementRef<HTMLDivElement>;
   @HostBinding("class") class: string[] = [];
 
-  constructor(private elRef: ElementRef<HTMLElement>) {}
+  src = input.required<string | undefined>();
+  bigPicSrc = input<string>();
+  prefix = input<string>();
+  control = input<boolean>();
+  loadingSrc = input<string>(imgLoading);
+  emptySrc = input<string>(imgEmpty);
+  objectFit = input<Property.ObjectFit>("contain");
+  imgLoad = output<ImageEvent>();
+  imgError = output<ImageEvent>();
+  imgEnd = output<ImageEvent>();
 
-  getSrc() {
-    const {prefix, _src, _src2} = this;
-    if (_src2) {
-      return _src2;
-    } else if (prefix && _src && !/^(\/)|(http)/.test(String(_src))) {
-      const prefix2 = prefix.endsWith("/") ? prefix : prefix + "/";
-      return prefix2 + _src;
-    }
-    return _src;
+  loading = signal(false);
+  error = signal(false);
+  bigPicVisible = signal(false);
+  bigPicClass = signal(["big-pic"]);
+
+  bigPicDiv = viewChild<ElementRef<HTMLDivElement>>("bigPicDiv");
+
+  constructor() {
+    effect(() => {
+      if (this.loading()) {
+        if (!this.class.includes("loading")) {
+          this.class = [...this.class, "loading"];
+        }
+      } else {
+        if (this.class.includes("loading")) {
+          this.class = this.class.filter((c) => c !== "loading");
+        }
+      }
+    });
+    effect(() => {
+      if (this.error()) {
+        if (!this.class.includes("error")) {
+          this.class = [...this.class, "error"];
+        }
+      } else {
+        if (this.class.includes("error")) {
+          this.class = this.class.filter((c) => c !== "error");
+        }
+      }
+    });
+    effect(
+      () => {
+        if (this.currSrc()) {
+          this.loading.set(true);
+          this.error.set(false);
+        } else {
+          this.loading.set(false);
+          this.error.set(false);
+        }
+        this.cd.markForCheck();
+      },
+      {allowSignalWrites: true}
+    );
   }
 
-  getBigPicSrc() {
-    const {prefix, bigPicSrc} = this;
-    if (prefix && bigPicSrc) {
-      return prefix + bigPicSrc;
+  currSrc = computed(() => {
+    const src = this.src();
+    const prefix = this.prefix();
+    return this.getUrl(src, prefix);
+  });
+  currBigPicSrc = computed(() => {
+    const bigPicSrc = this.bigPicSrc();
+    const prefix = this.prefix();
+    return this.getUrl(bigPicSrc, prefix);
+  });
+
+  getUrl(url: string | undefined, prefix: string | undefined) {
+    if (!url) {
+      return "";
     }
-    return bigPicSrc;
+    if (prefix && !/^(\/)|(http)/.test(url)) {
+      return prefix + url;
+    }
+    return url;
   }
 
-  onLoad() {
-    this.loading = false;
-    this.imgLoad.emit();
-    this.imgEnd.emit();
+  onLoad(event: Event) {
+    this.loading.set(false);
+    this.imgLoad.emit({event});
+    this.imgEnd.emit({event});
   }
 
-  onError() {
-    this.loading = false;
-    this._src2 = this.emptySrc;
-    if (!this.class.includes("error")) {
-      this.class = [...this.class, "error"];
-    }
-    this.imgError.emit();
-    this.imgEnd.emit();
+  onError(event: Event) {
+    this.loading.set(false);
+    this.error.set(true);
+    this.imgError.emit({event});
+    this.imgEnd.emit({event});
   }
 
   async showBigPic() {
-    if (this.bigPicSrc && this.bigPicDiv) {
-      const el = this.bigPicDiv.nativeElement;
-      el.style.display = "flex";
+    const bigPicSrc = this.bigPicSrc();
+    const bigPicDiv = this.bigPicDiv();
+    if (bigPicSrc && bigPicDiv) {
+      const el = bigPicDiv.nativeElement;
       document.body.append(el);
-      this.bigPicClass = Array.from(this.elRef.nativeElement.classList);
+      this.bigPicClass.set([...Array.from(this.elRef.nativeElement.classList), "big-pic"]);
       await timeout();
-      this.bigPicVisible = true;
+      this.bigPicVisible.set(true);
     }
   }
 
   async hideBigPic() {
-    if (this.bigPicSrc && this.bigPicDiv) {
-      this.bigPicVisible = false;
+    const bigPicSrc = this.bigPicSrc();
+    const bigPicDiv = this.bigPicDiv();
+    if (bigPicSrc && bigPicDiv) {
+      this.bigPicVisible.set(false);
       await timeout(400);
-      const bpEl = this.bigPicDiv.nativeElement;
-      bpEl.style.display = "none";
-      this.elRef.nativeElement.append(bpEl);
+      const el = bigPicDiv.nativeElement;
+      this.elRef.nativeElement.append(el);
     }
   }
 
@@ -149,7 +166,7 @@ export class ImageComponent {
   }
 
   onWheel(event: WheelEvent) {
-    if (!this._control) {
+    if (!this.control()) {
       return;
     }
     event.stopPropagation();
@@ -165,7 +182,7 @@ export class ImageComponent {
   }
 
   onPointerDown(event: PointerEvent) {
-    if (!this._control) {
+    if (!this.control()) {
       return;
     }
     event.stopPropagation();
@@ -179,7 +196,7 @@ export class ImageComponent {
   }
 
   onPointerMove(event: PointerEvent) {
-    if (!this._control) {
+    if (!this.control()) {
       return;
     }
     event.stopPropagation();
@@ -197,7 +214,7 @@ export class ImageComponent {
   }
 
   onPointerUp(event: PointerEvent) {
-    if (!this._control) {
+    if (!this.control()) {
       return;
     }
     event.stopPropagation();

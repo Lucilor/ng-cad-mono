@@ -30,9 +30,11 @@ import {MatInputModule} from "@angular/material/input";
 import {MatMenuModule} from "@angular/material/menu";
 import {MatRadioModule} from "@angular/material/radio";
 import {MatSelectModule} from "@angular/material/select";
+import {MatSlideToggleModule} from "@angular/material/slide-toggle";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {getArray, imgCadEmpty, joinOptions, splitOptions} from "@app/app.common";
 import {AppStatusService} from "@app/services/app-status.service";
+import {toFixed} from "@app/utils/func";
 import {CadImageComponent} from "@components/cad-image/cad-image.component";
 import {CadOptionsInput, openCadOptionsDialog} from "@components/dialogs/cad-options/cad-options.component";
 import {openEditFormulasDialog} from "@components/dialogs/edit-formulas-dialog/edit-formulas-dialog.component";
@@ -44,7 +46,7 @@ import {OptionsDataData} from "@modules/http/services/cad-data.service.types";
 import {ImageComponent} from "@modules/image/components/image/image.component";
 import {MessageService} from "@modules/message/services/message.service";
 import Color from "color";
-import csstype from "csstype";
+import {Properties} from "csstype";
 import {isEmpty, isEqual} from "lodash";
 import {Color as NgxColor} from "ngx-color";
 import {ChromeComponent, ColorChromeModule} from "ngx-color/chrome";
@@ -85,6 +87,7 @@ import {getValue, parseObjectString} from "./input.utils";
     MatOptionModule,
     MatRadioModule,
     MatSelectModule,
+    MatSlideToggleModule,
     MatTooltipModule,
     NgScrollbarModule,
     NgTemplateOutlet,
@@ -127,14 +130,21 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
 
   get value() {
     const {data, key} = this.model;
-    if (data && typeof data === "object" && key) {
-      return data[key];
+    const info = this.info;
+    let value: any;
+    if (data && typeof data === "object" && key !== undefined) {
+      value = data[key];
+    } else {
+      value = "";
     }
-    return "";
+    if (info.type === "number" && typeof value === "number" && typeof info.ndigits === "number") {
+      value = Number(value.toFixed(info.ndigits));
+    }
+    return value;
   }
   set value(val) {
     const {data, key} = this.model;
-    if (data && typeof data === "object" && key) {
+    if (data && typeof data === "object" && key !== undefined && key !== null) {
       data[key] = val;
     }
     const type = this.info.type;
@@ -197,6 +207,24 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     if (typeof value === "string") {
       return value;
     } else if (value instanceof Color) {
+      return value.string();
+    }
+    return "";
+  }
+  get colorStr2() {
+    const value = this.value;
+    if (typeof value === "string") {
+      return value;
+    } else if (value instanceof Color) {
+      return value.hex() + (value.alpha() < 1 ? `(${toFixed(value.alpha(), 2)})` : "");
+    }
+    return "";
+  }
+  get colorStr3() {
+    const value = this.value;
+    if (typeof value === "string") {
+      return value;
+    } else if (value instanceof Color) {
       return value.hex();
     }
     return "";
@@ -206,7 +234,7 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     if (info.type !== "color" || !info.options) {
       return [];
     }
-    return info.options.map((v) => (typeof v === "string" ? v : new Color(v).hex()));
+    return info.options.map((v) => (typeof v === "string" ? v : new Color(v).string()));
   }
 
   get fileAccept() {
@@ -227,7 +255,7 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
   formulasStr = "";
 
   @HostBinding("class") class: string[] = [];
-  @HostBinding("style") style: csstype.Properties = {};
+  @HostBinding("style") style: Properties = {};
 
   @ViewChild("colorChrome") colorChrome?: ChromeComponent;
   @ViewChildren("cadContainer") cadContainers?: QueryList<ElementRef<HTMLElement>>;
@@ -275,7 +303,8 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     }
     if (this.colorChrome) {
       await timeout(0);
-      this.setColor(this.colorChrome.hex);
+      const {r, g, b, a} = this.colorChrome.rgb;
+      this.setColor(new Color([r, g, b, a]));
     }
     this.infoDiffer = this.differs.find(this.info).create();
   }
@@ -493,6 +522,7 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     if (info.hidden) {
       this.style.display = "none";
     }
+    this.style["--input-text-align"] = info.inputTextAlign || "left";
     let validateValue = !info.noInitialValidate;
     changes.forEachItem((item) => {
       if (item.key === "forceValidateNum") {
@@ -631,7 +661,8 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
   }
 
   onColorChange(ngxColor: NgxColor) {
-    this.value = new Color(ngxColor.hex);
+    const {r, g, b, a} = ngxColor.rgb;
+    this.value = new Color([r, g, b, a]);
     this.onChange();
   }
 
@@ -934,10 +965,10 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
   }
 
   setColor(color: Color | string | undefined | null) {
-    const value = typeof color === "string" ? color : color?.hex();
+    const value = typeof color === "string" ? color : color?.string();
     try {
       const c = new Color(value);
-      if (c) {
+      if (c.isLight()) {
         this.colorBg = "black";
       } else {
         this.colorBg = "white";

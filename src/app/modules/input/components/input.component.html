@@ -284,36 +284,43 @@
     </div>
   }
   @case ("boolean") {
-    <mat-form-field [class]="{empty: isEmpty(value)}">
-      @if (info.label) {
-        <mat-label>{{ info.label }}</mat-label>
-      }
-      @if (info.hint) {
-        <mat-hint>{{ hint }}</mat-hint>
-      }
-      @if (info.radio) {
-        <input matInput hidden />
-        <mat-radio-group [(ngModel)]="value" (change)="onChange()">
-          <mat-radio-button [value]="true" [disabled]="info.readonly">是</mat-radio-button>
-          <mat-radio-button [value]="false" [disabled]="info.readonly">否</mat-radio-button>
-        </mat-radio-group>
-      } @else {
-        <mat-select
-          [errorStateMatcher]="getErrorStateMatcher()"
-          [disabled]="info.disabled || false"
-          [(ngModel)]="value"
-          [name]="name"
-          (selectionChange)="onChange()"
-          [placeholder]="info.placeholder || ''"
-        >
-          <ng-scrollbar matSelectViewport>
-            <mat-option [value]="true" [disabled]="info.readonly">是</mat-option>
-            <mat-option [value]="false" [disabled]="info.readonly">否</mat-option>
-          </ng-scrollbar>
-        </mat-select>
-      }
-      <mat-error>{{ getErrorMsg() }}</mat-error>
-    </mat-form-field>
+    @if (info.appearance === "switch") {
+      <div class="switch-container" [class]="{empty: isEmpty(value)}">
+        <div>{{ info.label }}</div>
+        <mat-slide-toggle [(ngModel)]="value" (change)="onChange()"></mat-slide-toggle>
+      </div>
+    } @else {
+      <mat-form-field [class]="{empty: isEmpty(value)}">
+        @if (info.label) {
+          <mat-label>{{ info.label }}</mat-label>
+        }
+        @if (info.hint) {
+          <mat-hint>{{ hint }}</mat-hint>
+        }
+        @if (info.appearance === "radio") {
+          <input matInput hidden />
+          <mat-radio-group [(ngModel)]="value" (change)="onChange()">
+            <mat-radio-button [value]="true" [disabled]="info.readonly">是</mat-radio-button>
+            <mat-radio-button [value]="false" [disabled]="info.readonly">否</mat-radio-button>
+          </mat-radio-group>
+        } @else {
+          <mat-select
+            [errorStateMatcher]="getErrorStateMatcher()"
+            [disabled]="info.disabled || false"
+            [(ngModel)]="value"
+            [name]="name"
+            (selectionChange)="onChange()"
+            [placeholder]="info.placeholder || ''"
+          >
+            <ng-scrollbar matSelectViewport>
+              <mat-option [value]="true" [disabled]="info.readonly">是</mat-option>
+              <mat-option [value]="false" [disabled]="info.readonly">否</mat-option>
+            </ng-scrollbar>
+          </mat-select>
+        }
+        <mat-error>{{ getErrorMsg() }}</mat-error>
+      </mat-form-field>
+    }
   }
   @case ("select") {
     <mat-form-field [class]="{empty: isEmpty(value)}">
@@ -497,8 +504,8 @@
       }
       <input
         matInput
-        [value]="colorStr"
-        [style]="{color: colorStr, backgroundColor: colorBg}"
+        [value]="colorStr2"
+        [style]="{color: colorStr3, backgroundColor: colorBg}"
         [matMenuTriggerFor]="editable ? colorPicker : null"
         [errorStateMatcher]="getErrorStateMatcher()"
         readonly
@@ -639,7 +646,7 @@
           <span>{{ info.label }}</span>
         </div>
         <div class="group" [style]="info.groupStyle">
-          @for (info2 of info.infos; track info2) {
+          @for (info2 of info.infos; track $index) {
             <app-input [info]="info2"></app-input>
           }
         </div>
@@ -647,7 +654,7 @@
       </div>
     } @else {
       <div class="group" [style]="info.groupStyle">
-        @for (info2 of info.infos; track info2) {
+        @for (info2 of info.infos; track $index) {
           <app-input [info]="info2"></app-input>
         }
       </div>

@@ -370,6 +370,10 @@ export class AppStatusService {
         collection,
         beforeOpen: async (data2) => {
           const url = await getCadPreview(collection, data2);
+          const img = new Image();
+          img.style.background = "black";
+          img.src = url;
+          document.body.prepend(img);
           await http.setCadImg(data2.id, url, {silent: true});
           this.cadImgToUpdate[data2.id] = {t: Date.now()};
         }

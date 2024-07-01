@@ -1,4 +1,5 @@
 import {ComponentFixture, TestBed} from "@angular/core/testing";
+import {imgEmpty} from "@app/app.common";
 import {ImageComponent} from "./image.component";
 
 describe("ImageComponent", () => {
@@ -14,6 +15,8 @@ describe("ImageComponent", () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(ImageComponent);
     component = fixture.componentInstance;
+    const ref = fixture.componentRef;
+    ref.setInput("src", imgEmpty);
     fixture.detectChanges();
   });
 

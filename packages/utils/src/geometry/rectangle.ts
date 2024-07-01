@@ -142,6 +142,7 @@ export class Rectangle {
   transform(matrix: MatrixLike) {
     this.min.transform(matrix);
     this.max.transform(matrix);
+    this.justify();
     return this;
   }
 

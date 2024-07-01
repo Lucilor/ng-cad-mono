@@ -1,0 +1,11 @@
+:host {
+  --component-img-size: 50px;
+}
+
+.item {
+  app-image {
+    width: var(--component-img-size);
+    height: var(--component-img-size);
+    flex: 0 0 auto;
+  }
+}

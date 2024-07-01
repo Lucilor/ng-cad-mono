@@ -1,4 +1,5 @@
-import {getOrderBarcode, getPdfInfo, replaceRemoteHost} from "@app/app.common";
+import {getOrderBarcode, replaceRemoteHost} from "@app/app.common";
+import {getPdfInfo, getPrintInfo} from "@app/utils/print";
 import {
   CadCircle,
   CadData,
@@ -16,19 +17,7 @@ import {
   FontStyle,
   setLinesLength
 } from "@lucilor/cad-viewer";
-import {
-  getDPI,
-  getImageDataUrl,
-  isBetween,
-  isNearZero,
-  isTypeOf,
-  loadImage,
-  Matrix,
-  ObjectOf,
-  Point,
-  Rectangle,
-  timeout
-} from "@lucilor/utils";
+import {getImageDataUrl, isBetween, isNearZero, isTypeOf, loadImage, Matrix, ObjectOf, Point, Rectangle, timeout} from "@lucilor/utils";
 import {cloneDeep, intersection} from "lodash";
 import {createPdf} from "pdfmake/build/pdfmake";
 import QRCode from "qrcode";
@@ -843,31 +832,11 @@ const getBomTableImgs = async (bomTable: BomTable, config: CadViewerConfig, size
   return imgs;
 };
 
-/**
- * A4: (210 × 297)mm²
- *    =(8.26 × 11.69)in² (1in = 25.4mm)
- * 	  =(794 × 1123)px² (96dpi)
- */
-export const getA4PrintInfo = () => {
-  let [dpiX, dpiY] = getDPI();
-  if (!(dpiX > 0) || !(dpiY > 0)) {
-    console.warn("Unable to get screen dpi.Assuming dpi = 96.");
-    dpiX = dpiY = 96;
-  }
-  const factor = 0.75;
-  const width = (210 / 25.4) * dpiX * factor;
-  const height = (297 / 25.4) * dpiY * factor;
-  const scaleX = 300 / dpiX / factor;
-  const scaleY = 300 / dpiY / factor;
-  const scale = Math.sqrt(scaleX * scaleY);
-  return {width, height, scaleX, scaleY, scale, factor};
-};
-
 export const printCads = async (params: PrintCadsParams) => {
   const cads = params.cads.map((v) => v.clone());
   const config = params.config || {};
   const extra = params.extra || {};
-  const {width, height, scaleX, scaleY, scale} = getA4PrintInfo();
+  const {width, height, scaleX, scaleY, scale} = getPrintInfo(210, 297);
   const errors: string[] = [];
 
   const pdfPadding: number[] = [];

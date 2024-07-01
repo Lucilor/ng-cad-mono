@@ -144,14 +144,14 @@ export class ImportComponent extends Utils() implements OnInit {
       this.importNormalInputs.push({
         type: "boolean",
         label,
-        radio: true,
+        appearance: "radio",
         model: {data: this.importConfigNormal, key},
         hidden: normalHiddenKeys.includes(key)
       });
       this.importSuanliaoInputs.push({
         type: "boolean",
         label,
-        radio: true,
+        appearance: "radio",
         model: {data: this.importConfigSuanliao, key},
         hidden: suanliaoHiddenKeys.includes(key)
       });

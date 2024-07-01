@@ -1,0 +1,46 @@
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
+.items {
+  width: 100%;
+}
+.item {
+  color: black;
+  cursor: move;
+  &.active,
+  &.hover {
+    color: var(--primary-color);
+  }
+
+  .name {
+    font-size: 16px;
+    margin-left: 10px;
+    overflow: visible;
+    --level-size: 5px;
+
+    .level {
+      background: black;
+      width: var(--level-size);
+      height: 1px;
+      margin: 0;
+      margin-left: calc(var(--level) * 14px + (var(--level) - 1) * var(--level-size));
+      &::before {
+        content: "";
+        display: block;
+        width: 1px;
+        height: 20px;
+        background: black;
+        transform: translateY(-100%);
+      }
+    }
+
+    input {
+      text-align: left;
+      width: 0;
+      flex: 1 1 0;
+      min-width: 100px;
+    }
+  }
+}

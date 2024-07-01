@@ -10664,6 +10664,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"html-to-image@npm:^1.11.11":
+  version: 1.11.11
+  resolution: "html-to-image@npm:1.11.11"
+  checksum: 10c0/0b6349221ad253dfca01d165c589d44341e942faf0273aab28c8b7d86ff2922d3e8e6390f57bf5ddaf6bac9a3b590a8cdaa77d52a363354796dd0e0e05eb35d2
+  languageName: node
+  linkType: hard
+
 "htmlparser2@npm:^8.0.2":
   version: 8.0.2
   resolution: "htmlparser2@npm:8.0.2"
@@ -12944,6 +12951,7 @@ __metadata:
     form-data: "npm:^4.0.0"
     glob: "npm:^10.4.2"
     highlight.js: "npm:^11.9.0"
+    html-to-image: "npm:^1.11.11"
     jasmine-core: "npm:~5.1.2"
     jasmine-spec-reporter: "npm:~7.0.0"
     jsbarcode: "npm:^3.11.6"

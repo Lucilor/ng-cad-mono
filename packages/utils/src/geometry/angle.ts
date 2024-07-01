@@ -1,4 +1,5 @@
 import {DEFAULT_TOLERANCE} from "./constants";
+import {Point} from "./point";
 
 export class Angle {
   private _value: number;
@@ -22,9 +23,7 @@ export class Angle {
     return this._value;
   }
   set rad(value) {
-    if (this.unit !== "rad") {
-      value = (value / Math.PI) * 180;
-    }
+    this.unit = "rad";
     this._value = value;
   }
 
@@ -35,9 +34,7 @@ export class Angle {
     return this._value;
   }
   set deg(value) {
-    if (this.unit !== "rad") {
-      value = (value / 180) * Math.PI;
-    }
+    this.unit = "deg";
     this._value = value;
   }
 
@@ -109,5 +106,14 @@ export class Angle {
 
   equals(angle: Angle, tol = DEFAULT_TOLERANCE) {
     return Math.abs(this.rad - angle.rad) <= tol;
+  }
+
+  // 用余弦定理求三点形成的夹角(角ABC)
+  static fromPoints(a: Point, b: Point, c: Point) {
+    const ab = a.distanceTo(b);
+    const bc = b.distanceTo(c);
+    const ac = a.distanceTo(c);
+    const cos = (ab ** 2 + bc ** 2 - ac ** 2) / (2 * ab * bc);
+    return new Angle(Math.acos(cos), "rad");
   }
 }

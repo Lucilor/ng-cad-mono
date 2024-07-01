@@ -2,12 +2,16 @@ import {AbstractControlOptions, FormControl, FormControlOptions, FormControlStat
 import {environment} from "@env";
 import {LocalStorage, log, ObjectOf, SessionStorage, Timer} from "@lucilor/utils";
 import JsBarcode from "jsbarcode";
-import {TDocumentInformation} from "pdfmake/interfaces";
 
 declare global {
   interface Window {
     parseBaobianzhengmianRules(content: string, vars?: ObjectOf<any>): {errors: string[]};
     batchCheck(data: ObjectOf<any>[]): ObjectOf<string[]>;
+  }
+}
+declare module "csstype" {
+  interface Properties {
+    [key: string]: any;
   }
 }
 export const remoteHost = "https://www.let888.cn" as const;
@@ -158,15 +162,15 @@ export interface XiaodaohangStructure {
 
 export const filePathUrl = `${origin}/filepath`;
 
-export const getFilepathUrl = (url: string | undefined | null, opts?: {prefix?: string; suffix?: string}) => {
+export const getFilepathUrl = (url: string | undefined | null, opts?: {prefix?: string; suffix?: string; remote?: boolean}) => {
   if (!url) {
     return "";
   }
   if (url.startsWith("http")) {
     return url;
   }
-  const {prefix, suffix} = opts || {};
-  let result = `${filePathUrl}/${url}`;
+  const {prefix, suffix, remote} = opts || {};
+  let result = `${remote ? remoteFilePath : filePathUrl}/${url}`;
   if (prefix || suffix) {
     const strs = url.split("/");
     if (strs.length > 0) {
@@ -211,31 +215,21 @@ export const getBooleanStr = (value: boolean) => {
   return value ? "是" : "否";
 };
 
-export const getCopyName = (names: string[], name: string) => {
-  if (!names.includes(name)) {
+export const getNameWithSuffix = (names: string[], name: string, suffix: string, startNum: number) => {
+  if (suffix && !names.includes(name)) {
     return name;
   }
-  let i = 0;
-  const getSuffix = () => "_复制" + (i === 0 ? "" : i.toString());
-  while (names.includes(name + getSuffix())) {
+  let i = startNum;
+  const getSuffix = () => suffix + (i === 0 ? "" : i.toString());
+  let suffix2 = getSuffix();
+  while (names.includes(name + suffix2)) {
+    suffix2 = getSuffix();
     i++;
   }
-  return name + getSuffix();
+  return name + suffix2;
 };
-
-export const getPdfInfo = (others?: TDocumentInformation): TDocumentInformation => {
-  const now = new Date();
-  return {
-    title: "noname",
-    author: "Lucilor",
-    subject: "Lucilor",
-    creator: "Lucilor",
-    producer: "Lucilor",
-    creationDate: now,
-    modDate: now,
-    ...others
-  };
-};
+export const getInsertName = (names: string[], name: string) => getNameWithSuffix(names, name, "", 1);
+export const getCopyName = (names: string[], name: string) => getNameWithSuffix(names, name, "_复制", 0);
 
 export const getArrayString = (value: any, separator: string) => {
   if (Array.isArray(value)) {
@@ -265,6 +259,33 @@ export const getValueString = (value: any, separator = ",", separatorKv = ":") =
     return getBooleanStr(value);
   } else {
     return String(value);
+  }
+};
+
+export interface KeyEventItem {
+  key: string;
+  ctrl?: boolean;
+  shift?: boolean;
+  alt?: boolean;
+  action: () => void;
+}
+export const onKeyEvent = (event: KeyboardEvent, items: KeyEventItem[]) => {
+  for (const item of items) {
+    const {key, ctrl, shift, alt, action: callback} = item;
+    if (ctrl && !event.ctrlKey) {
+      continue;
+    }
+    if (shift && !event.shiftKey) {
+      continue;
+    }
+    if (alt && !event.altKey) {
+      continue;
+    }
+    if (event.key.toLowerCase() === key.toLowerCase()) {
+      callback();
+      event.preventDefault();
+      return;
+    }
   }
 };
 

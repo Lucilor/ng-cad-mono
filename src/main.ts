@@ -2,6 +2,7 @@ import {enableProdMode, importProvidersFrom, Injectable} from "@angular/core";
 import {MAT_DATE_LOCALE} from "@angular/material/core";
 import {MAT_DIALOG_DEFAULT_OPTIONS, MatDialogConfig} from "@angular/material/dialog";
 import {MAT_FORM_FIELD_DEFAULT_OPTIONS, MatFormFieldDefaultOptions} from "@angular/material/form-field";
+import {MAT_ICON_DEFAULT_OPTIONS, MatIconDefaultOptions} from "@angular/material/icon";
 import {MatPaginatorIntl} from "@angular/material/paginator";
 import {MAT_TOOLTIP_DEFAULT_OPTIONS, MatTooltipDefaultOptions} from "@angular/material/tooltip";
 import {bootstrapApplication} from "@angular/platform-browser";
@@ -29,17 +30,19 @@ class MyMatPaginatorIntl extends MatPaginatorIntl {
     return `第${page + 1}/${totalPage}页，共${length}条`;
   };
 }
+
+const matDialogOptions: MatDialogConfig = {
+  disableClose: true
+};
 const matFormFieldOptions: MatFormFieldDefaultOptions = {
-  appearance: "fill",
+  // appearance: "fill",
   floatLabel: "always"
 };
+const matIconDefaultOptions: MatIconDefaultOptions = {fontSet: "material-symbols-rounded"};
 const matTooltipOptions: MatTooltipDefaultOptions = {
   showDelay: 500,
   hideDelay: 0,
   touchendHideDelay: 0
-};
-const matDialogOptions: MatDialogConfig = {
-  disableClose: true
 };
 
 if (environment.production) {
@@ -79,10 +82,11 @@ bootstrapApplication(AppComponent, {
       SpinnerModule
     ),
     {provide: MatPaginatorIntl, useClass: MyMatPaginatorIntl},
-    {provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: matFormFieldOptions},
     {provide: MAT_DATE_LOCALE, useValue: "zh-CN"},
-    {provide: MAT_TOOLTIP_DEFAULT_OPTIONS, useValue: matTooltipOptions},
     {provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: matDialogOptions},
+    {provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: matFormFieldOptions},
+    {provide: MAT_ICON_DEFAULT_OPTIONS, useValue: matIconDefaultOptions},
+    {provide: MAT_TOOLTIP_DEFAULT_OPTIONS, useValue: matTooltipOptions},
     {provide: RECAPTCHA_V3_SITE_KEY, useValue: "6Leil-0ZAAAAACnzpTud2QN5OuhJ10UyJJrUq70m"},
     {
       provide: RECAPTCHA_LOADER_OPTIONS,

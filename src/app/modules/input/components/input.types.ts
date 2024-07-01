@@ -6,7 +6,7 @@ import {EditFormulasInput} from "@components/dialogs/edit-formulas-dialog/edit-f
 import {ObjectOf} from "@lucilor/utils";
 import {OptionsData} from "@modules/http/services/cad-data.service.types";
 import Color from "color";
-import csstype from "csstype";
+import {Properties} from "csstype";
 
 export type Value<T> = T | (() => T);
 
@@ -31,7 +31,8 @@ export interface InputInfoBase<T = any> {
   forceValidateNum?: number; // change this to trigger validation
   name?: string;
   class?: string | string[];
-  style?: csstype.Properties;
+  style?: Properties;
+  inputTextAlign?: Properties["textAlign"];
   hidden?: boolean;
   displayValue?: Value<string>;
   filterValuesGetter?: (option: InputInfoOption<T>) => string[];
@@ -91,7 +92,7 @@ export interface InputInfoArray<T = any> extends InputInfoBase<T> {
 
 export interface InputInfoBoolean<T = any> extends InputInfoBase<T> {
   type: "boolean";
-  radio?: boolean;
+  appearance?: "select" | "radio" | "switch";
   onChange?: (val: boolean, info: InputInfoBoolean<T>) => void;
 }
 
@@ -180,7 +181,7 @@ export interface InputInfoList<T = any> extends InputInfoBase<T> {
 export interface InputInfoGroup<T = any> extends InputInfoBase<T> {
   type: "group";
   infos?: InputInfo<T>[];
-  groupStyle?: csstype.Properties;
+  groupStyle?: Properties;
 }
 
 export type InputInfo<T = any> =

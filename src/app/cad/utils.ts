@@ -636,8 +636,8 @@ export const openCadDimensionForm = async (
   const dimension2 = dimension.clone();
   const form: InputInfo<typeof dimension>[] = [
     {type: "string", label: "名字", model: {data: dimension2, key: "mingzi"}},
-    {type: "boolean", label: "删除标注", radio: true, value: false},
-    {type: "boolean", label: "隐藏尺寸线", radio: true, value: !!dimension2.style.dimensionLine?.hidden},
+    {type: "boolean", label: "删除标注", appearance: "radio", value: false},
+    {type: "boolean", label: "隐藏尺寸线", appearance: "radio", value: !!dimension2.style.dimensionLine?.hidden},
     {
       type: "select",
       label: "小数处理",

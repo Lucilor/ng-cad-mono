@@ -1,25 +1,49 @@
-<div class="img-container" [class.small-pic]="bigPicSrc" (click)="showBigPic()">
-  @if (loading) {
-    <div>
-      <img [src]="loadingSrc" />
-    </div>
+<div class="img-container" [class.small-pic]="bigPicSrc()" (click)="showBigPic()">
+  @if (loading()) {
+    <img
+      [src]="loadingSrc()"
+      (wheel)="onWheel($event)"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+    />
   }
-  <img
-    (wheel)="onWheel($event)"
-    (pointerdown)="onPointerDown($event)"
-    (pointermove)="onPointerMove($event)"
-    (pointerup)="onPointerUp($event)"
-    [src]="getSrc()"
-    [style]="{visibility: loading ? 'hidden' : ''}"
-    (load)="onLoad()"
-    (error)="onError()"
-  />
+  @if (error()) {
+    <img
+      [src]="emptySrc()"
+      (wheel)="onWheel($event)"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+    />
+  }
+  @if (currSrc(); as currSrc) {
+    <img
+      [src]="currSrc"
+      [class.hidden]="loading() || error()"
+      [style.object-fit]="objectFit()"
+      (wheel)="onWheel($event)"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+      (load)="onLoad($event)"
+      (error)="onError($event)"
+    />
+  } @else {
+    <img
+      [src]="emptySrc()"
+      (wheel)="onWheel($event)"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+    />
+  }
 </div>
 
-@if (getBigPicSrc()) {
-  <div #bigPicDiv class="big-pic" [class]="bigPicClass" style="display: none" (click)="hideBigPic()">
-    @if (bigPicVisible) {
-      <img [src]="getBigPicSrc()" @toggle />
+@if (currBigPicSrc(); as currBigPicSrc) {
+  <div #bigPicDiv class="big-pic" [class]="bigPicClass()" style="display: none" (click)="hideBigPic()">
+    @if (bigPicVisible()) {
+      <img [src]="currBigPicSrc" @toggle />
     }
   </div>
 }

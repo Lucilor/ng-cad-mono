@@ -1,6 +1,6 @@
 import {ObjectOf} from "./types";
 
-class CustomStorage {
+export abstract class CustomStorage {
   private _field: string;
   storage: Storage;
 
