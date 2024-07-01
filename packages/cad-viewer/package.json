@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@lucilor/utils": "workspace:^",
-    "@svgdotjs/svg.js": "3.2.3",
+    "@svgdotjs/svg.js": "3.2.4",
     "color": "^4.2.3",
     "events": "^3.3.0",
     "lodash": "^4.17.21",

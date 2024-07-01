@@ -3914,7 +3914,7 @@ __metadata:
   resolution: "@lucilor/cad-viewer@workspace:packages/cad-viewer"
   dependencies:
     "@lucilor/utils": "workspace:^"
-    "@svgdotjs/svg.js": "npm:3.2.3"
+    "@svgdotjs/svg.js": "npm:3.2.4"
     "@types/color": "npm:^3.0.6"
     "@types/events": "npm:^3.0.3"
     "@types/lodash": "npm:^4.17.5"
@@ -5409,10 +5409,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@svgdotjs/svg.js@npm:3.2.3":
-  version: 3.2.3
-  resolution: "@svgdotjs/svg.js@npm:3.2.3"
-  checksum: 10c0/bf816103d5999dbdb136b9c96ca85e15dfe51bdccb4dcd68b466b1b9459059ad598975884d0b4cf45464fc148d075bc91aa7508656449bf65ad31627ab642faa
+"@svgdotjs/svg.js@npm:3.2.4":
+  version: 3.2.4
+  resolution: "@svgdotjs/svg.js@npm:3.2.4"
+  checksum: 10c0/35563560998def7fd9b35c434214428f122d1fc11a5d6975fbc9b3c92b3e86700daba74f9106d7abd5dc979eb26c6e6429be71236dd226bc0f2d92e880e8fe2c
   languageName: node
   linkType: hard
 
