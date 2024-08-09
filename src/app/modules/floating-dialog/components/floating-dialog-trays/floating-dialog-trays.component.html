@@ -1,0 +1,20 @@
+<div class="trays toolbar" #traysEl>
+  @for (dialog of dialogs(); track i; let i = $index) {
+    <button
+      mat-button
+      class="tray"
+      [color]="dialog.active() ? 'primary' : ''"
+      [appContextMenuTrigger]="contextMenu"
+      (onContextMenu)="onContextMenu(i)"
+      (click)="clickTray(dialog)"
+    >
+      {{ dialog.name() }}
+    </button>
+  }
+</div>
+
+<app-context-menu #contextMenu>
+  @for (btn of contextMenuBtns(); track $index) {
+    <button mat-menu-item (click)="btn.action()">{{ btn.name }}</button>
+  }
+</app-context-menu>

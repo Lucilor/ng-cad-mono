@@ -1,0 +1,43 @@
+<div
+  #dialogEl
+  class="floating-dialog ng-page"
+  [class.active]="active()"
+  [class.pinned]="pinned()"
+  [class.minimized]="minimized()"
+  [class.maximized]="maximized()"
+  [style]="style()"
+  (click)="beActive()"
+  cdkDrag
+  [cdkDragDisabled]="dragDisabled()"
+  [cdkDragFreeDragPosition]="position()"
+  (cdkDragEnded)="onDragEnded($event)"
+>
+  <div class="title toolbar" cdkDragHandle [appContextMenuTrigger]="contextMenu">
+    <div class="text long"><ng-content select="[appFloatingDialogTitle]"></ng-content></div>
+    @for (btn of titleBtns(); track $index) {
+      <button mat-icon-button color="primary" (click)="btn.action()">
+        <mat-icon>{{ btn.icon }}</mat-icon>
+      </button>
+    }
+  </div>
+  <div class="body hidden-if-empty flex-110 flex-column">
+    <ng-content select="[appFloatingDialogBody]"></ng-content>
+    <ng-content></ng-content>
+  </div>
+
+  @for (handle of resizeHandles(); track $index) {
+    <div
+      class="resize-handle"
+      [class]="handle.name"
+      cdkDrag
+      (cdkDragStarted)="onResizeBefore()"
+      (cdkDragMoved)="onResize($event, handle)"
+    ></div>
+  }
+</div>
+
+<app-context-menu #contextMenu>
+  @for (btn of contextMenuBtns(); track $index) {
+    <button mat-menu-item (click)="btn.action()">{{ btn.name }}</button>
+  }
+</app-context-menu>

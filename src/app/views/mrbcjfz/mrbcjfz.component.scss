@@ -1,6 +1,9 @@
 :host {
   padding: 20px;
   --active-color: lightgray;
+  &.no-scroll {
+    height: auto;
+  }
 }
 
 .bancai {

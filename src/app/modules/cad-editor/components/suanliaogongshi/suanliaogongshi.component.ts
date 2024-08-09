@@ -7,7 +7,7 @@ import {MatDialog} from "@angular/material/dialog";
 import {MatDividerModule} from "@angular/material/divider";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {getCopyName} from "@app/app.common";
-import {ShuruTableData} from "@app/components/lurushuju/lurushuju-index/lurushuju-index.types";
+import {ShuruTableData} from "@app/components/lurushuju/lrsj-pieces/lrsj-zuofa/lrsj-zuofa.types";
 import {Formulas} from "@app/utils/calc";
 import {openEditFormulasDialog} from "@components/dialogs/edit-formulas-dialog/edit-formulas-dialog.component";
 import {FormulasEditorComponent} from "@components/formulas-editor/formulas-editor.component";

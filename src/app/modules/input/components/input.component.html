@@ -346,24 +346,44 @@
           [placeholder]="info.placeholder || ''"
         />
       } @else {
-        <mat-select
-          [disabled]="info.disabled || false"
-          [errorStateMatcher]="getErrorStateMatcher()"
-          [(ngModel)]="value"
-          [multiple]="info.multiple"
-          (selectionChange)="onChange()"
-        >
-          <ng-scrollbar matSelectViewport>
-            @if (optionText) {
-              <mat-select-trigger [innerHtml]="optionText"></mat-select-trigger>
-            }
-            @for (option of options; track $index) {
-              <mat-option [value]="option.value" [disabled]="info.readonly || option.disabled">
-                {{ option.label || option.value }}
-              </mat-option>
-            }
-          </ng-scrollbar>
-        </mat-select>
+        @if (info.multiple) {
+          <mat-select
+            [disabled]="info.disabled || false"
+            [errorStateMatcher]="getErrorStateMatcher()"
+            [(ngModel)]="value"
+            multiple
+            (selectionChange)="onChange()"
+          >
+            <ng-scrollbar matSelectViewport>
+              @if (optionText) {
+                <mat-select-trigger [innerHtml]="optionText"></mat-select-trigger>
+              }
+              @for (option of options; track $index) {
+                <mat-option [value]="option.value" [disabled]="info.readonly || option.disabled">
+                  {{ option.label || option.value }}
+                </mat-option>
+              }
+            </ng-scrollbar>
+          </mat-select>
+        } @else {
+          <mat-select
+            [disabled]="info.disabled || false"
+            [errorStateMatcher]="getErrorStateMatcher()"
+            [(ngModel)]="value"
+            (selectionChange)="onChange()"
+          >
+            <ng-scrollbar matSelectViewport>
+              @if (optionText) {
+                <mat-select-trigger [innerHtml]="optionText"></mat-select-trigger>
+              }
+              @for (option of options; track $index) {
+                <mat-option [value]="option.value" [disabled]="info.readonly || option.disabled">
+                  {{ option.label || option.value }}
+                </mat-option>
+              }
+            </ng-scrollbar>
+          </mat-select>
+        }
       }
       <ng-container matSuffix>
         @if (info.openInNewTab) {

@@ -1,0 +1,9 @@
+<div
+  class="menu-trigger"
+  [style.left]="contextMenuPosition().x"
+  [style.top]="contextMenuPosition().y"
+  [matMenuTriggerFor]="contextMenu"
+></div>
+<mat-menu #contextMenu="matMenu">
+  <ng-content></ng-content>
+</mat-menu>

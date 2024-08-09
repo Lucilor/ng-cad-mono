@@ -233,8 +233,6 @@ input[type="number"] {
   --title-padding: 0.5em;
   --border: 1px solid black;
   --top-z-index: 99999;
-  --top-z-index1: calc(var(--top-z-index) + 1);
-  --top-z-index2: calc(var(--top-z-index1) + 1);
 }
 
 .title {
@@ -251,5 +249,30 @@ input[type="number"] {
 @media print {
   .no-print {
     display: none !important;
+  }
+}
+
+.img {
+  --img-width: 35px;
+  --img-height: 35px;
+  position: absolute;
+  width: var(--img-width);
+  height: var(--img-height);
+  background-size: contain;
+  background-repeat: no-repeat;
+  &.done {
+    top: 0;
+    left: 0;
+    background-image: url("/n/static/images/done.png");
+  }
+  &.disabled {
+    top: 0;
+    right: 0;
+    background-image: url("/n/static/images/disabled.png");
+  }
+  &.is-default {
+    top: 0;
+    left: calc(50% - var(--img-width) / 2);
+    background-image: url("/n/static/images/is-default.png");
   }
 }

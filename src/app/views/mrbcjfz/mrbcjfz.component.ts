@@ -1,6 +1,7 @@
 import {CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray} from "@angular/cdk/drag-drop";
-import {KeyValuePipe} from "@angular/common";
+import {KeyValuePipe, NgTemplateOutlet} from "@angular/common";
 import {
+  ChangeDetectorRef,
   Component,
   EventEmitter,
   HostBinding,
@@ -76,11 +77,12 @@ import {
     MatDividerModule,
     MatIconModule,
     NgScrollbar,
+    NgTemplateOutlet,
     SpinnerComponent
   ]
 })
 export class MrbcjfzComponent implements OnInit, OnChanges {
-  @HostBinding("class") class = "ng-page";
+  @HostBinding("class") class = ["ng-page"];
 
   @Input() id = 0;
   @Input() table = "";
@@ -101,6 +103,7 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
   activeBancaiKey: string | null = null;
   xiaodaohangStructure: XiaodaohangStructure | null = null;
   isFromOrder = false;
+  noScroll = false;
   private _isInited = false;
   private _refreshLock$ = new BehaviorSubject<boolean>(false);
   wmm = new WindowMessageManager("默认板材及分组", this, window.parent);
@@ -119,7 +122,8 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
     private http: CadDataService,
     private dialog: MatDialog,
     private status: AppStatusService,
-    private message: MessageService
+    private message: MessageService,
+    private cd: ChangeDetectorRef
   ) {
     setGlobal("mrbcjfz", this);
   }
@@ -146,6 +150,15 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
     let {id, table} = this;
     if (this.inputData) {
       this.isFromOrder = true;
+      const noScroll = !!this.inputData.noScroll;
+      this.noScroll = noScroll;
+      if (noScroll) {
+        if (!this.class.includes("no-scroll")) {
+          this.class = [...this.class, "no-scroll"];
+        }
+      } else {
+        this.class = this.class.filter((v) => v !== "no-scroll");
+      }
     } else {
       const params = this.route.snapshot.queryParams;
       if (!id || !table) {
@@ -357,6 +370,7 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
       info.可选材料 = result.cailiaoList || [];
       info.可选厚度 = result.houduList || [];
     }
+    this.cd.markForCheck();
   }
 
   async emptyBancaiForm(key: string) {
@@ -383,6 +397,7 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
       this.selectBancaiKey(this.activeBancaiKey);
     }
     this.updateListItems();
+    this.cd.markForCheck();
   }
 
   justifyBancai(key: string, info: MrbcjfzInfo) {

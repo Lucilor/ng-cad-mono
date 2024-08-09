@@ -1,0 +1,21 @@
+:host {
+  padding: 5px;
+}
+
+.sub-form-field {
+  margin-bottom: 10px;
+
+  .list {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+mat-tab-group {
+  width: 100%;
+  ::ng-deep {
+    .mdc-tab--active {
+      --mat-tab-header-label-text-size: 24px;
+    }
+  }
+}

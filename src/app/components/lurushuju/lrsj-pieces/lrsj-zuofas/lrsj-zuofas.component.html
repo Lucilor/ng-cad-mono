@@ -1,0 +1,67 @@
+@if (xinghao(); as xinghao) {
+  <ng-scrollbar #scrollbar>
+    <div class="items">
+      @for (fenlei of xinghao["显示产品分类"]; track i; let i = $index) {
+        @if (i > 0) {
+          <mat-divider></mat-divider>
+        }
+        <div class="产品分类" [attr.data-i]="i">
+          @if (i > 0) {
+            <mat-divider></mat-divider>
+          }
+          <div class="flex-row">
+            <div class="header">
+              <div class="name title">{{ fenlei }}</div>
+            </div>
+            <div class="工艺做法 items no-items-per-row">
+              @for (zuofa of xinghao["产品分类"][fenlei]; track j; let j = $index) {
+                <div class="item link" [attr.data-ij]="i + ',' + j">
+                  @if (zuofa["录入完成"]) {
+                    <div class="img done"></div>
+                  }
+                  @if (zuofa["停用"]) {
+                    <div class="img disabled"></div>
+                  }
+                  @if (zuofa["默认值"]) {
+                    <div class="img is-default"></div>
+                  }
+                  <app-image [src]="getFilepathUrl(zuofa['图片'])" (click)="openZuofa(fenlei, zuofa)"> </app-image>
+                  <div class="name" (click)="openZuofa(fenlei, zuofa)">{{ zuofa["名字"] }}</div>
+                  @if (editMode()) {
+                    <div class="toolbar center">
+                      <button mat-button color="primary" (click)="editZuofa(fenlei, zuofa)">编辑</button>
+                      <button mat-button color="primary" (click)="copyZuofa(fenlei, zuofa)">复制</button>
+                      <button mat-button color="primary" (click)="removeZuofa(fenlei, zuofa)">删除</button>
+                    </div>
+                  }
+                </div>
+              }
+              <div class="item border link" (click)="addZuofa(fenlei)">
+                <div class="add-btn toolbar center flex-110">
+                  <button mat-icon-button color="primary"><mat-icon>add</mat-icon></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </ng-scrollbar>
+}
+
+@for (info of zuofaInfos(); track i; let i = $index) {
+  <app-floating-dialog
+    [name]="info.zuofa['名字']"
+    width="50%"
+    height="50%"
+    top="25%"
+    left="25%"
+    [(position)]="info.position"
+    (close)="closeZuofa(i)"
+  >
+    <ng-container appFloatingDialogTitle>工艺做法：{{ info.zuofa["名字"] }}</ng-container>
+    <ng-container appFloatingDialogBody>
+      <app-lrsj-zuofa [fenleiName]="info.fenleiName" [(zuofa)]="info.zuofa"></app-lrsj-zuofa>
+    </ng-container>
+  </app-floating-dialog>
+}

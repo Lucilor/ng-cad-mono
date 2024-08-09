@@ -1,0 +1,52 @@
+<div class="flex-110 flex-row">
+  @if (showMenuLeft()) {
+    @if (openCadOptions().suanliaogongshiInfo; as info) {
+      <app-suanliaogongshi [info]="info"></app-suanliaogongshi>
+      <mat-divider vertical></mat-divider>
+    }
+  }
+  <div class="flex-column flex-110 scrollbar-container">
+    <div class="toolbar">
+      <div class="toolbar">
+        <button mat-mini-fab color="primary" (click)="showMenuLeft.set(!showMenuLeft())">
+          <mat-icon>{{ showMenuLeft() ? "navigate_before" : "navigate_next" }}</mat-icon>
+        </button>
+      </div>
+      <app-input style="width: 0; flex: 0 1 180px" [info]="suanliaoCadsSearch()"></app-input>
+      <button mat-raised-button [color]="isCadsReversed() ? 'accent' : 'primary'" (click)="toggleCadsReversed(true)">升序</button>
+      <button mat-raised-button [color]="isCadsReversed() ? 'primary' : 'accent'" (click)="toggleCadsReversed(false)">降序</button>
+      <div class="flex-110"></div>
+      <div class="toolbar">
+        @if (isKailiao()) {
+          <button mat-mini-fab color="primary" (click)="showMenuRight.set(!showMenuRight())">
+            <mat-icon>{{ showMenuRight() ? "navigate_next" : "navigate_before" }}</mat-icon>
+          </button>
+        }
+      </div>
+    </div>
+    <ng-scrollbar #cadsScrollbar class="enable-x">
+      <div class="cads flex-row">
+        @for (cadInfo of cadInfos(); track i; let i = $index) {
+          <app-cad-item
+            [class.hidden]="cadInfo.hidden"
+            [cad]="cadInfo.cad"
+            [buttons]="cadItemButtons()"
+            [yaoqiu]="cadInfo.yaoqiu"
+            [gongshis]="data()?.['算料公式']"
+            [mubanExtraData]="mubanExtraData()"
+            [openCadOptions]="openCadOptions()"
+            [customInfo]="{index: cadInfo.i}"
+            [showMuban]="isKailiao()"
+            [validators]="{zhankai: true, name: cadNameValidator}"
+          ></app-cad-item>
+        }
+      </div>
+    </ng-scrollbar>
+  </div>
+  @if (isKailiao() && showMenuRight()) {
+    @if (suanliaoDataParams(); as params) {
+      <mat-divider vertical></mat-divider>
+      <app-suanliao-tables [suanliaoDataParams]="params"></app-suanliao-tables>
+    }
+  }
+</div>

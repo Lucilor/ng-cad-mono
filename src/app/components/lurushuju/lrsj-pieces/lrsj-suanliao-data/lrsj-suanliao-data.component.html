@@ -1,0 +1,125 @@
+<div class="flex-110 flex-row scrollbar-container">
+  <ng-scrollbar #inputScrollbar style="width: 0">
+    @for (info of form(); track $index) {
+      <app-input [info]="info"></app-input>
+    }
+    <mat-tab-group class="menjiao-data" [(selectedIndex)]="menjiaoCadTabIndex" (selectedTabChange)="onMenjiaoCadTabChange($event)">
+      @for (key1 of menjiaoCadTypes; track $index) {
+        @if (key1Infos()[key1]; as key1Info) {
+          <mat-tab [label]="key1Info.title">
+            <div class="sub-form-field">
+              <div class="label">{{ key1 }}</div>
+              <div class="flex-row">
+                <div class="flex-column flex-110" style="width: 0">
+                  <ng-template #btns>
+                    <div class="toolbar">
+                      <button mat-raised-button color="primary" (click)="gotoSuanliaoCads(key1)">算料公式CAD配置</button>
+                      <button mat-raised-button color="primary" (click)="copy(key1)">复制</button>
+                      <button mat-raised-button color="primary" (click)="empty(key1)">清空</button>
+                    </div>
+                  </ng-template>
+                  @if (!production) {
+                    <ng-container [ngTemplateOutlet]="btns"></ng-container>
+                  }
+                  <div class="flex-row">
+                    @for (info of key1Info.inputs; track $index) {
+                      <app-input [info]="info"></app-input>
+                    }
+                  </div>
+                  <div class="list">
+                    @for (key3 of qiliaoKeys[suanliaoData()["产品分类"]] || []; track i; let i = $index) {
+                      <ng-container *ngTemplateOutlet="cadItem; context: {key1, key2: '企料CAD', key3}"></ng-container>
+                    }
+                    @for (key3 of peiheKeys[suanliaoData()["产品分类"]] || []; track i; let i = $index) {
+                      <ng-container *ngTemplateOutlet="cadItem; context: {key1, key2: '配合框CAD', key3}"></ng-container>
+                    }
+                  </div>
+                  <div class="示意图CAD sub-form-field">
+                    <div class="label toolbar">
+                      <div>示意图CAD</div>
+                      <app-input [info]="shiyituSearchInputInfo()[key1]"></app-input>
+                    </div>
+                    @if (xinghaozhuanyongCadCount() > 0) {
+                      <div class="toolbar">
+                        <div class="text" style="color: blue">【型号专用CAD】做了【算料单示意图】，这里不可以再选择数据</div>
+                      </div>
+                    }
+                    <div class="list">
+                      @if (suanliaoData()[key1]["示意图CAD"]["算料单示意图"].length > 0) {
+                        @for (item of suanliaoData()[key1]["示意图CAD"]["算料单示意图"]; track i; let i = $index) {
+                          <app-cad-item
+                            [cad]="item"
+                            [buttons]="shiyituCadItemButtons()"
+                            [customInfo]="{key1, index: $index}"
+                            [yaoqiu]="getCadshujuyaoqiu('算料单示意图')"
+                            [gongshis]="suanliaoData()[key1]['算料公式']"
+                            [openCadOptions]="getOpenCadOptions(key1)"
+                            [cadWidth]="cadWidth"
+                            [cadHeight]="cadHeight"
+                            [class.hidden]="hiddenShiyitus().includes(i)"
+                            (afterEditCad)="afterEditCad(key1)"
+                          ></app-cad-item>
+                        }
+                        <div class="flex-row" style="align-items: center">
+                          <button mat-raised-button color="primary" (click)="selectShiyituCad(key1)">选择</button>
+                        </div>
+                      } @else {
+                        <div class="empty-cad item link" (click)="selectShiyituCad(key1)">
+                          <div class="box border" [style]="{width: cadWidth + 'px', height: cadHeight + 'px'}"></div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                  @if (key1Info.xiaoguotuInputs.length > 0) {
+                    <div class="flex-row">
+                      @for (info of key1Info.xiaoguotuInputs; track $index) {
+                        <app-input [info]="info"></app-input>
+                      }
+                    </div>
+                  }
+                  @if (production) {
+                    <ng-container [ngTemplateOutlet]="btns"></ng-container>
+                  }
+                  @if (key1Errors()[key1]?.msg; as msg) {
+                    <div class="error-msg">{{ msg }}</div>
+                  }
+                </div>
+                @if (isKailiao() && loadedKey1s().includes(key1)) {
+                  <app-suanliao-tables [class]="key1" [suanliaoDataParams]="key1Info.suanliaoDataParams"></app-suanliao-tables>
+                }
+              </div>
+              <app-mrbcjfz [inputData]="key1Info.mrbjfzInputData"></app-mrbcjfz>
+            </div>
+          </mat-tab>
+        }
+      }
+    </mat-tab-group>
+  </ng-scrollbar>
+</div>
+
+<ng-template #cadItem [appTypedTemplate]="emptyCadTemplateType" let-key1="key1" let-key2="key2" let-key3="key3">
+  @if (suanliaoData()[key1][key2][key3] && suanliaoData()[key1][key2][key3].cad && loadedKey1s().includes(key1)) {
+    <app-cad-item
+      [cad]="suanliaoData()[key1][key2][key3].cad!"
+      [buttons]="cadItemButtons()"
+      [buttons2]="cadItemButtons2()"
+      [customInfo]="{key1, key2, key3}"
+      [yaoqiu]="getCadshujuyaoqiu(key3)"
+      [gongshis]="suanliaoData()[key1]['算料公式']"
+      [fentiDialogInput]="getFentiDialogInput(key1, key2, key3)"
+      [openCadOptions]="getOpenCadOptions(key1)"
+      [cadWidth]="cadWidth"
+      [cadHeight]="cadHeight"
+      (afterEditCad)="afterEditCad(key1)"
+    ></app-cad-item>
+  } @else {
+    <div class="empty-cad item link" (click)="selectCad0({key1, key2, key3})">
+      <div class="name">{{ cadNameMap[key3] || key3 }}</div>
+      <div class="box border" [style]="{width: cadWidth + 'px', height: cadHeight + 'px'}">
+        @if (key1Errors()[key1]?.missingCads?.includes(key3)) {
+          <span class="error">请选择</span>
+        }
+      </div>
+    </div>
+  }
+</ng-template>

@@ -1,0 +1,105 @@
+@if (!xinghao() && editMode()) {
+  <div class="toolbar">
+    <button mat-stroked-button color="primary" (click)="addXinghaoMenchaung()">添加门窗</button>
+  </div>
+}
+<ng-scrollbar>
+  <div class="nav">
+    @if (xinghao(); as xinghao) {
+      <div class="menchaungs link" (click)="gotoXinghaos()">
+        <div class="item active">
+          <div class="menchuang-header">
+            <div class="name">{{ menchuangName() }}</div>
+          </div>
+          <div class="gongyis">
+            <div class="item active">
+              <div class="gongyi-header">
+                <div class="name">{{ gongyiName() }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>【{{ xinghao["名字"] }}】的工艺做法</div>
+      <div class="fenlei-list">
+        @for (fenleiName of xinghao["显示产品分类"]; track i; let i = $index) {
+          <div class="toolbar compact">
+            <button mat-button class="name" [class.active]="suanliaoDataInfo()?.fenleiName === fenleiName" (click)="clickFenleiZuofa(i)">
+              {{ fenleiName }}
+            </button>
+            <div class="zuofa-list">
+              @for (zuofa of xinghao["产品分类"][fenleiName]; track j; let j = $index) {
+                <div class="toolbar compact">
+                  <button
+                    mat-button
+                    class="name"
+                    [class.active]="suanliaoDataInfo()?.zuofaName === zuofa['名字']"
+                    (click)="clickFenleiZuofa(i, j)"
+                  >
+                    {{ zuofa["名字"] }}
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="menchaungs">
+        @for (menchuang of xinghaoMenchuangs().items; track i; let i = $index) {
+          @if (menchuang.gongyis) {
+            <div class="item" [class.active]="xinghaoMenchuangs().index === i">
+              <div class="menchuang-header flex-column">
+                <div class="name">
+                  <span>{{ menchuang.mingzi }}</span>
+                  @if (!production) {
+                    <span>&nbsp;({{ menchuang.gongyis.count }})</span>
+                  }
+                </div>
+                @if (editMode()) {
+                  <div class="toolbar compact">
+                    <button mat-button color="primary" (click)="editXinghaoMenchaung(i)">编辑</button>
+                    <button mat-button color="primary" (click)="removeXinghaoMenchaung(i)">删除</button>
+                    <button mat-button color="primary" (click)="addXinghaoGongyi(i)">添加工艺</button>
+                  </div>
+                }
+              </div>
+              <div class="gongyis">
+                @for (gongyi of menchuang.gongyis.items; track j; let j = $index) {
+                  @if (gongyi.xinghaos) {
+                    <div class="item" [class.active]="xinghaoMenchuangs().index === i && menchuang.gongyis.index === j">
+                      <div class="gongyi-header flex-row">
+                        <div class="name flex-110 link" (click)="clickXinghaoGongyi(i, j)">
+                          <span>{{ gongyi.mingzi }}</span>
+                          @if (!production) {
+                            <span>&nbsp;({{ gongyi.xinghaos.count }})</span>
+                          }
+                        </div>
+                        @if (xinghaoFilterStr() && gongyi.xinghaos.count > 0) {
+                          <div class="error">搜索到{{ gongyi.xinghaos.count }}个型号</div>
+                        }
+                        @if (editMode()) {
+                          <div class="toolbar compact">
+                            <button mat-button color="primary" (click)="editXinghaoGongyi(i, j)">编辑</button>
+                            <button mat-button color="primary" (click)="removeXinghaoGongyi(i, j)">删除</button>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+    }
+    @if (suanliaoDataInfo(); as info) {
+      <div class="toolbar vertical">
+        @for (name of suanliaoDataBtnNames; track $index) {
+          <button mat-raised-button color="primary" (click)="clickSuanliaoDataBtnName(name)">{{ name }}</button>
+        }
+      </div>
+    }
+  </div>
+</ng-scrollbar>

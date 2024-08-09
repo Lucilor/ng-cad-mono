@@ -93,6 +93,8 @@ export interface MrbcjfzInputData {
   huajians?: MrbcjfzHuajian[];
   isLocal?: boolean;
   bancaiList?: BancaiListData;
+  noScroll?: boolean;
+  noToolbar?: boolean;
 }
 
 export interface MrbcjfzDataSubmitEvent {

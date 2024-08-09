@@ -76,7 +76,9 @@
   }
 
   .toolbar {
+    --large-placeholder-size: 30px;
     display: flex;
+    flex-wrap: wrap;
     &:not(.vertical) {
       align-items: center;
       &.center {
@@ -160,12 +162,18 @@
       .mdc-button {
         padding: 0;
         --mdc-text-button-container-height: auto;
+        .mat-mdc-button-touch-target {
+          height: auto;
+        }
       }
     }
 
     .mat-divider {
       &.large {
-        margin: 30px;
+        flex: 0 1 var(--large-placeholder-size);
+      }
+      &.flex-110 {
+        flex: 1 1 0;
       }
     }
   }
@@ -181,15 +189,6 @@
 
   .link {
     cursor: pointer;
-  }
-
-  .mat-divider {
-    &.mat-divider-horizontal {
-      width: 100%;
-    }
-    &.mat-divider-vertical {
-      height: 100%;
-    }
   }
 }
 

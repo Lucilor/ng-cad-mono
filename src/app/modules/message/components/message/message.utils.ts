@@ -26,7 +26,7 @@ export const getListStr = (domSanitizer: DomSanitizer, content: string[], title 
   return el.outerHTML;
 };
 
-export const validateForm = async (inputs: InputComponent[]) => {
+export const validateForm = async (inputs: InputComponent[] | readonly InputComponent[]) => {
   let errors: ValidationErrors | null = null;
   let hasValidatorRequired = false;
   let hasValidatorOther = false;

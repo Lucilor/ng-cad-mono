@@ -7,7 +7,8 @@
     @if (main) {
       <div
         class="cad-image"
-        (contextmenu)="onContextMenu($event, main.data, 'main')"
+        [appContextMenuTrigger]="contextMenu"
+        (onContextMenu)="onContextMenu(main.data, 'main')"
         [matTooltip]="main.data.name"
         [matTooltipPosition]="'above'"
       >
@@ -59,32 +60,24 @@
   }
 </ng-scrollbar>
 
-<div
-  style="visibility: hidden; position: fixed"
-  [style.left]="contextMenuPosition.x"
-  [style.top]="contextMenuPosition.y"
-  [matMenuTriggerFor]="contextMenu"
-></div>
-<mat-menu #contextMenu="matMenu">
-  <ng-template matMenuContent>
-    @if (contextMenuCad?.field === "main") {
-      <button mat-menu-item (click)="editComponents()">选择装配CAD</button>
-      <mat-divider></mat-divider>
-    }
-    <button mat-menu-item (click)="downloadDxf()">下载dxf文件</button>
-    <button mat-menu-item [matMenuTriggerFor]="uploadMenu">上传dxf文件</button>
-    <mat-menu #uploadMenu="matMenu">
-      <button mat-menu-item (click)="uploadDxf(false, false)">替换</button>
-      <button mat-menu-item (click)="uploadDxf(true, false)">添加</button>
-      <button mat-menu-item (click)="uploadDxf(false, true)">替换主CAD</button>
-    </mat-menu>
+<app-context-menu #contextMenu="">
+  @if (contextMenuCad?.field === "main") {
+    <button mat-menu-item (click)="editComponents()">选择装配CAD</button>
     <mat-divider></mat-divider>
-    <button mat-menu-item (click)="getJson()">复制json数据</button>
-    <button mat-menu-item (click)="setJson()">粘贴json数据</button>
-    <button mat-menu-item (click)="downloadJson()">下载json文件</button>
-    <button mat-menu-item (click)="editJson()">修改json数据</button>
-    <mat-divider></mat-divider>
-    <button mat-menu-item (click)="replaceData()">替换数据</button>
-  </ng-template>
-</mat-menu>
+  }
+  <button mat-menu-item (click)="downloadDxf()">下载dxf文件</button>
+  <button mat-menu-item [matMenuTriggerFor]="uploadMenu">上传dxf文件</button>
+  <mat-menu #uploadMenu="matMenu">
+    <button mat-menu-item (click)="uploadDxf(false, false)">替换</button>
+    <button mat-menu-item (click)="uploadDxf(true, false)">添加</button>
+    <button mat-menu-item (click)="uploadDxf(false, true)">替换主CAD</button>
+  </mat-menu>
+  <mat-divider></mat-divider>
+  <button mat-menu-item (click)="getJson()">复制json数据</button>
+  <button mat-menu-item (click)="setJson()">粘贴json数据</button>
+  <button mat-menu-item (click)="downloadJson()">下载json文件</button>
+  <button mat-menu-item (click)="editJson()">修改json数据</button>
+  <mat-divider></mat-divider>
+  <button mat-menu-item (click)="replaceData()">替换数据</button>
+</app-context-menu>
 <input #dxfInut type="file" accept=".dxf" hidden (change)="onDxfInutChange($event)" />

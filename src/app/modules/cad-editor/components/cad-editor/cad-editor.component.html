@@ -1,19 +1,11 @@
-<div
-  style="visibility: hidden; position: fixed"
-  [style.left]="contextMenuPosition.x"
-  [style.top]="contextMenuPosition.y"
-  [matMenuTriggerFor]="contextMenu"
-></div>
-<mat-menu #contextMenu="matMenu">
-  <ng-template matMenuContent>
-    <button mat-menu-item (click)="zoomAll()">居中</button>
-    <button mat-menu-item (click)="refresh()">刷新</button>
-    <button mat-menu-item (click)="toggleAllMenu()">{{ showAllMenu ? "隐藏" : "显示" }}菜单</button>
-  </ng-template>
-</mat-menu>
+<app-context-menu #contextMenu>
+  <button mat-menu-item (click)="zoomAll()">居中</button>
+  <button mat-menu-item (click)="refresh()">刷新</button>
+  <button mat-menu-item (click)="toggleAllMenu()">{{ showAllMenu ? "隐藏" : "显示" }}菜单</button>
+</app-context-menu>
 
 <div class="menus">
-  <div class="cad-container" #cadContainer (contextmenu)="onContextMenu($event)"></div>
+  <div class="cad-container" #cadContainer [appContextMenuTrigger]="contextMenu"></div>
   <app-cad-points></app-cad-points>
 
   <div class="menu top" [@closeTop]="showTopMenu ? 'open' : 'closed'">

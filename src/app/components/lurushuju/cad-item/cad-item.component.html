@@ -8,12 +8,24 @@
     ></mat-checkbox>
   }
   <div class="flex-110 flex-row link" style="justify-content: center; align-items: center" (click)="selectable?.onChange(this)">
-    <button mat-button appClickStop [class.error]="!!errorMsgs['名字']" [onClickStopped]="onClickStopped" (click)="editCadForm()">
+    <button
+      class="name-btn"
+      mat-button
+      appClickStop
+      [class.error]="!!errorMsgs['名字']"
+      [onClickStopped]="onClickStopped"
+      (click)="editCadForm()"
+    >
       {{ cadName }}
     </button>
-    <button mat-icon-button color="primary" appClickStop [onClickStopped]="onClickStopped" (click)="copyName()">
+    <button class="name-btn" mat-icon-button color="primary" appClickStop [onClickStopped]="onClickStopped" (click)="copyName()">
       <mat-icon>content_copy</mat-icon>
     </button>
+    @for (button of buttons2; track $index) {
+      <button mat-button color="primary" appClickStop [onClickStopped]="onClickStopped" (click)="button.onClick(this)">
+        {{ button.name }}
+      </button>
+    }
   </div>
 </div>
 <div class="cads">
@@ -49,11 +61,6 @@
           }
         }
       </div>
-      @for (button of buttons2; track $index) {
-        <button mat-button color="primary" appClickStop [onClickStopped]="onClickStopped" (click)="button.onClick(this)">
-          {{ button.name }}
-        </button>
-      }
     </div>
     <div class="toolbar compact">
       @if (cadViewer) {

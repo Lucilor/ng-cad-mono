@@ -136,7 +136,7 @@
               <div>{{ getMokuaiTitle(item) }}</div>
               <div class="cads flex-row flex-110">
                 @for (item of item.cads; track j; let j = $index) {
-                  <template *ngTemplateOutlet="cadItem; context: {$implicit: cad, i, j, type: '模块'}"></template>
+                  <template *ngTemplateOutlet="cadItem; context: {$implicit: item.data, i, j, type: '模块'}"></template>
                 }
               </div>
             </div>
@@ -271,13 +271,13 @@
             </div>
           </ng-scrollbar>
         </div>
-        @if (isEditingFenlei || !data?.readonly) {
+        @if (!data?.readonly) {
           <mat-divider vertical></mat-divider>
           <ng-scrollbar #lingsanRightScrollbar>
             <div class="lingsan-cads">
               @for (item of result["零散"]; track i; let i = $index) {
                 <div class="lingsan-cad">
-                  <app-cad-image [id]="isEditingFenlei ? item.data.id : ''" [data]="item.data"></app-cad-image>
+                  <app-cad-image id="" [data]="item.data"></app-cad-image>
                   <div class="title flex-row flex-110">
                     <button mat-icon-button color="primary" (click)="removeLingsanItem(i)">
                       <mat-icon>remove_circle</mat-icon>
@@ -312,7 +312,11 @@
   @if (!cad.info.hidden) {
     <div class="cad">
       <div class="cad-container">
-        <div [id]="'cad-viewer-' + type + '-' + i + '-' + j" (contextmenu)="onContextMenu($event, i, j)"></div>
+        <div
+          [id]="'cad-viewer-' + type + '-' + i + '-' + j"
+          [appContextMenuTrigger]="contextMenu"
+          (onContextMenu)="onContextMenu(i, j)"
+        ></div>
         <!-- TODO: isLocal -->
         <div class="floating-titles" style="display: none">
           <div class="title" (click)="openCad(cad, false, true)">
@@ -407,14 +411,6 @@
 </ng-template>
 
 <app-spinner [id]="spinnerId"></app-spinner>
-<div
-  style="visibility: hidden; position: fixed"
-  [style.left]="contextMenuPosition.x"
-  [style.top]="contextMenuPosition.y"
-  [matMenuTriggerFor]="contextMenu"
-></div>
-<mat-menu #contextMenu="matMenu">
-  <ng-template matMenuContent>
-    <button mat-menu-item (click)="centerCad()">居中</button>
-  </ng-template>
-</mat-menu>
+<app-context-menu #contextMenu>
+  <button mat-menu-item (click)="centerCad()">居中</button>
+</app-context-menu>

@@ -1,6 +1,6 @@
 <form>
   <button hidden></button>
-  @for (d of dimensions; track d; let i = $index) {
+  @for (d of dimensions; track i; let i = $index) {
     <div>
       <mat-form-field>
         <mat-label>标注名字</mat-label>

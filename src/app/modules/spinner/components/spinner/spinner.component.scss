@@ -10,16 +10,17 @@
   }
 
   ngx-ui-loader {
+    --z-index-base: var(--top-z-index);
     .ngx-background-spinner {
-      z-index: var(--top-z-index) !important;
+      z-index: var(--z-index-base) !important;
     }
 
     .ngx-overlay {
-      z-index: var(--top-z-index1) !important;
+      z-index: calc(var(--z-index-base) + 1) !important;
     }
 
     .ngx-progress-bar {
-      z-index: var(--top-z-index2) !important;
+      z-index: calc(var(--z-index-base) + 2) !important;
     }
   }
 }

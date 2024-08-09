@@ -7,7 +7,7 @@ import {MatButtonModule} from "@angular/material/button";
 import {MAT_DIALOG_DATA, MatDialog, MatDialogRef} from "@angular/material/dialog";
 import {MatDividerModule} from "@angular/material/divider";
 import {MatIconModule} from "@angular/material/icon";
-import {MatMenuModule, MatMenuTrigger} from "@angular/material/menu";
+import {MatMenuModule} from "@angular/material/menu";
 import {MatSlideToggleModule} from "@angular/material/slide-toggle";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {MatTreeModule, MatTreeNestedDataSource} from "@angular/material/tree";
@@ -18,6 +18,7 @@ import {setDimensionText, uploadAndReplaceCad} from "@app/cad/utils";
 import {CadItemComponent} from "@app/components/lurushuju/cad-item/cad-item.component";
 import {CadItemButton} from "@app/components/lurushuju/cad-item/cad-item.types";
 import {getCadInfoInputs2} from "@app/modules/cad-editor/components/menu/cad-info/cad-info.utils";
+import {ContextMenuModule} from "@app/modules/context-menu/context-menu.module";
 import {getHoutaiCad} from "@app/modules/http/services/cad-data.service.utils";
 import {convertOptions} from "@app/modules/input/components/input.utils";
 import {toFixed} from "@app/utils/func";
@@ -29,7 +30,6 @@ import {Debounce} from "@decorators/debounce";
 import {environment} from "@env";
 import {CadData, CadLine, CadLineLike, CadMtext, CadViewer, CadViewerConfig, setLinesLength} from "@lucilor/cad-viewer";
 import {getElementVisiblePercentage, ObjectOf, queryStringList, timeout} from "@lucilor/utils";
-import {ContextMenu} from "@mixins/context-menu.mixin";
 import {CadDataService} from "@modules/http/services/cad-data.service";
 import {BancaiList} from "@modules/http/services/cad-data.service.types";
 import {InputInfo} from "@modules/input/components/input.types";
@@ -88,6 +88,7 @@ import {
     CdkDragHandle,
     CdkDropList,
     ClickStopPropagationDirective,
+    ContextMenuModule,
     ImageComponent,
     InputComponent,
     KeyValuePipe,
@@ -104,7 +105,7 @@ import {
     TypedTemplateDirective
   ]
 })
-export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
+export class ZixuanpeijianComponent implements OnInit {
   @HostBinding("class") class = "ng-page";
 
   spinnerId = "zixuanpeijian-" + uniqueId();
@@ -119,7 +120,6 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
   result: ZixuanpeijianOutput = importZixuanpeijian();
   cadViewers: {模块: ObjectOf<ObjectOf<CadViewer[]>>; 零散: CadViewer[]} = {模块: {}, 零散: []};
   getMokuaiTitle = getMokuaiTitle;
-  @ViewChild(MatMenuTrigger) contextMenu!: MatMenuTrigger;
   @ViewChild("lingsanTypesScrollbar") lingsanTypesScrollbar?: NgScrollbar;
   @ViewChild("lingsanTypesTree", {read: ElementRef}) lingsanTypesTreeEl?: ElementRef<HTMLElement>;
   @ViewChild("lingsanLeftScrollbar") lingsanLeftScrollbar?: NgScrollbar;
@@ -207,7 +207,6 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
     private calc: CalcService,
     private status: AppStatusService
   ) {
-    super();
     this.lingsanCadItemButtons = [
       {name: "复制", onClick: this.copyLingsanCad.bind(this)},
       {name: "删除", onClick: this.deleteLingsanCad.bind(this)}
@@ -423,10 +422,6 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
     const lingsanOptions = this.data?.lingsanOptions;
     const responseData = await step3FetchData(this.http, lingsanOptions, noCache);
     if (responseData) {
-      if (!preserveImgs) {
-        this.lingsanCadImgs = {};
-      }
-      this.lingsanCadInfos = [];
       this.lingsanCads = {};
       for (const v of responseData.cads) {
         const data = new CadData(v);
@@ -590,8 +585,7 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
     }
   }
 
-  onContextMenu(event: MouseEvent, i: number, j: number): void {
-    super.onContextMenu(event);
+  onContextMenu(i: number, j: number): void {
     this.contextMenuData.i = i;
     this.contextMenuData.j = j;
   }
@@ -968,8 +962,8 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
   async addLingsanItem(component: CadItemComponent<LingsanCadItemInfo>) {
     const type = this.lingsanCadType;
     const {index: i} = component.customInfo;
-    const {isEditingFenlei, multiDeleting} = this;
-    if ((this.data?.readonly && !isEditingFenlei) || multiDeleting) {
+    const {multiDeleting} = this;
+    if (this.data?.readonly || multiDeleting) {
       return;
     }
     this.activeLingsanCad(type, i);
@@ -977,18 +971,14 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
     if (!item) {
       return;
     }
-    if (isEditingFenlei) {
-      if (this.result.零散.find((v) => v.info.houtaiId === item.data.id)) {
-        return;
-      }
-    } else if (!item.isFetched) {
+    if (!item.isFetched) {
       const data0 = (await this.http.getCad({collection: "cad", id: item.data.id})).cads[0];
       item.isFetched = true;
       if (data0) {
         item.data = data0;
       }
     }
-    const data = item.data.clone(!isEditingFenlei);
+    const data = item.data.clone(true);
     data.info.imgId = await this.http.getMongoId();
     const yaoqiu = this.getLingsanYaoqiu();
     const yaoqiuItems = yaoqiu?.选中CAD要求 || [];
@@ -1002,7 +992,7 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
   }
 
   removeLingsanItem(i: number) {
-    if (this.data?.readonly && !this.isEditingFenlei) {
+    if (this.data?.readonly) {
       return;
     }
     this.result.零散.splice(i, 1);
@@ -1303,6 +1293,7 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
     await this.http.tableDelete({table: table.name, vids: [node.id]});
     this.step3Refresh(true, false);
   }
+  lingsanTypesHideEmpty = false;
   toggleLingsanTypesHideEmpty() {
     this.lingsanTypesHideEmpty = !this.lingsanTypesHideEmpty;
     this.filterLingsanItems();

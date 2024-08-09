@@ -9,11 +9,11 @@ import {MatTooltipModule} from "@angular/material/tooltip";
 import {timer} from "@app/app.common";
 import {setCadData} from "@app/cad/cad-data-transform";
 import {uploadAndReplaceCad} from "@app/cad/utils";
+import {ContextMenuModule} from "@app/modules/context-menu/context-menu.module";
 import {CadImageComponent} from "@components/cad-image/cad-image.component";
 import {openCadListDialog} from "@components/dialogs/cad-list/cad-list.component";
 import {CadData, CadEntities, CadEventCallBack} from "@lucilor/cad-viewer";
 import {downloadByString, Matrix, ObjectOf, Point} from "@lucilor/utils";
-import {ContextMenu} from "@mixins/context-menu.mixin";
 import {Subscribed} from "@mixins/subscribed.mixin";
 import {CadDataService} from "@modules/http/services/cad-data.service";
 import {MessageService} from "@modules/message/services/message.service";
@@ -35,6 +35,7 @@ type ContextMenuCadField = "main" | "component";
   styleUrls: ["./sub-cads.component.scss"],
   standalone: true,
   imports: [
+    ContextMenuModule,
     forwardRef(() => CadImageComponent),
     MatButtonModule,
     MatCheckboxModule,
@@ -45,7 +46,7 @@ type ContextMenuCadField = "main" | "component";
     NgScrollbar
   ]
 })
-export class SubCadsComponent extends ContextMenu(Subscribed()) implements OnInit, OnDestroy {
+export class SubCadsComponent extends Subscribed() implements OnInit, OnDestroy {
   main: CadNode | null = null;
   components: CadNode[] = [];
   checkedIndex = -1;
@@ -244,8 +245,7 @@ export class SubCadsComponent extends ContextMenu(Subscribed()) implements OnIni
     this.status.components.selected$.next([]);
   }
 
-  onContextMenu(event: MouseEvent, data: CadData, field: ContextMenuCadField) {
-    super.onContextMenu(event);
+  onContextMenu(data: CadData, field: ContextMenuCadField) {
     if (!this.componentsSelectable) {
       return;
     }

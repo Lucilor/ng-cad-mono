@@ -1,0 +1,26 @@
+<div class="toolbar">
+  <button mat-raised-button color="primary" (click)="addXinghao()">新建型号</button>
+  <app-input [info]="filterInputInfo"></app-input>
+</div>
+<ng-scrollbar style="width: 100%">
+  <div class="xinghaos items no-items-per-row">
+    @for (xinghao of xinghaos(); track $index) {
+      @if (!xinghao.hidden) {
+        <div class="item">
+          @if (xinghao.tingyong) {
+            <div class="img disabled"></div>
+          }
+          <app-image class="link" [src]="xinghao.tupian" fit="contain" (click)="gotoZuofas(xinghao.mingzi)"></app-image>
+          <div class="name" [matTooltip]="xinghao.mingzi">{{ xinghao.mingzi }}</div>
+          @if (editMode()) {
+            <div class="toolbar center">
+              <button mat-button color="primary" (click)="editXinghao(xinghao)">编辑</button>
+              <button mat-button color="primary" (click)="copyXinghao(xinghao)">复制</button>
+              <button mat-button color="primary" (click)="removeXinghao(xinghao)">删除</button>
+            </div>
+          }
+        </div>
+      }
+    }
+  </div>
+</ng-scrollbar>

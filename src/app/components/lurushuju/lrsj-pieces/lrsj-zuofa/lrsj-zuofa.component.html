@@ -1,0 +1,31 @@
+<mat-tab-group>
+  @for (tab of tabs(); track $index) {
+    @if (!tab.hidden) {
+      <mat-tab [label]="tab.name">
+        @switch (tab.name) {
+          @case ("下单选项输入配置") {
+            <div class="tab-content 下单选项输入配置">
+              <app-table
+                [info]="xuanxiangTable()"
+                (toolbarButtonClick)="onXuanxiangToolbar($event)"
+                (rowButtonClick)="onXuanxiangRow($event)"
+              ></app-table>
+              <app-table
+                [info]="shuruTable()"
+                (toolbarButtonClick)="onShuruToolbar($event)"
+                (rowButtonClick)="onShuruRow($event)"
+              ></app-table>
+            </div>
+          }
+          @case ("算料数据") {
+            <app-table
+              [info]="menjiaoTable()"
+              (toolbarButtonClick)="onMenjiaoToolbar($event)"
+              (rowButtonClick)="onMenjiaoRow($event)"
+            ></app-table>
+          }
+        }
+      </mat-tab>
+    }
+  }
+</mat-tab-group>

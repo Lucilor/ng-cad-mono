@@ -1,212 +1,37 @@
-<div class="btn-group">
-  <div class="toolbar">
-    @switch (step) {
-      @case (1) {
-        <button mat-raised-button color="primary" (click)="autoTest()">测试</button>
-        <button mat-raised-button color="primary" (click)="xinghaoTongyongGongshi()">所有型号通用公式</button>
-        <button mat-raised-button color="primary" (click)="tongyongshuju()">通用数据录入</button>
-        <button mat-raised-button color="primary" (click)="openZxpj(false)">配件库</button>
+<div class="toolbar" #toolbar>
+  @for (btn of toolbarBtns(); track $index) {
+    @if (!btn.hidden) {
+      @if (btn.name) {
+        <button mat-raised-button [class]="btn.class" [style]="btn.style" [color]="btn.color" (click)="onToolbarBtnClick(btn)">
+          {{ btn.name }}
+        </button>
+      } @else {
+        <mat-divider vertical class="placeholder large" [class]="btn.class" [style]="btn.style"></mat-divider>
       }
-      @case (2) {
-        <div class="name title">型号【{{ xinghaoName }}】的工艺做法</div>
-      }
-      @case (3) {
-        <div class="name title">型号：{{ xinghaoName }}</div>
-        <div class="name title">产品分类：{{ fenleiName }}</div>
-        <div class="name title">工艺做法：{{ gongyiName }}</div>
-      }
-    }
-    <app-about></app-about>
-  </div>
-  <div class="toolbar right flex-110">
-    @if (!production) {
-      <button mat-raised-button color="primary" (click)="purgeXinghaos()">purgeXinghaos</button>
-    }
-    @if (step > 1) {
-      <button mat-raised-button color="primary" (click)="back()">返回</button>
-    }
-  </div>
-</div>
-
-<div class="step-1 flex-row flex-110" [class.hidden]="step !== 1">
-  <div class="menchaungs flex-column">
-    <div class="toolbar">
-      <button mat-stroked-button color="primary" (click)="addXinghaoMenchaung()">添加门窗</button>
-      <button mat-stroked-button [color]="isMenchuangEditable ? 'accent' : 'primary'" (click)="isMenchuangEditable = !isMenchuangEditable">
-        {{ isMenchuangEditable ? "关闭" : "开启" }}编辑
-      </button>
-    </div>
-    <ng-scrollbar>
-      @for (menchuang of xinghaoMenchuangs.items; track i; let i = $index) {
-        @if (menchuang.gongyis) {
-          <div class="item" [class.active]="xinghaoMenchuangs.index === i">
-            <div class="menchuang-header flex-column">
-              <div class="name">
-                <span>{{ menchuang.mingzi }}</span>
-                @if (!production) {
-                  <span>&nbsp;({{ menchuang.gongyis.count }})</span>
-                }
-              </div>
-              @if (isMenchuangEditable) {
-                <div class="toolbar compact">
-                  <button mat-button color="primary" (click)="editXinghaoMenchaung(i)">编辑</button>
-                  <button mat-button color="primary" (click)="removeXinghaoMenchaung(i)">删除</button>
-                  <button mat-button color="primary" (click)="addXinghaoGongyi(i)">添加工艺</button>
-                </div>
-              }
-            </div>
-            <div class="gongyis">
-              @for (gongyi of menchuang.gongyis.items; track j; let j = $index) {
-                @if (gongyi.xinghaos) {
-                  <div class="item" [class.active]="xinghaoMenchuangs.index === i && menchuang.gongyis.index === j">
-                    <div class="gongyi-header flex-row">
-                      <div class="name flex-110 link" (click)="clikcXinghaoGongyi(i, j)">
-                        <span>{{ gongyi.mingzi }}</span>
-                        @if (!production) {
-                          <span>&nbsp;({{ gongyi.xinghaos.count }})</span>
-                        }
-                      </div>
-                      @if (xinghaoFilterStr && gongyi.xinghaos.count > 0) {
-                        <div class="error">搜索到{{ gongyi.xinghaos.count }}个型号</div>
-                      }
-                      @if (isMenchuangEditable) {
-                        <div class="toolbar compact">
-                          <button mat-button color="primary" (click)="editXinghaoGongyi(i, j)">编辑</button>
-                          <button mat-button color="primary" (click)="removeXinghaoGongyi(i, j)">删除</button>
-                        </div>
-                      }
-                    </div>
-                  </div>
-                }
-              }
-            </div>
-          </div>
-        }
-      }
-    </ng-scrollbar>
-  </div>
-  <mat-divider vertical></mat-divider>
-  <div class="item flex-110">
-    <div class="toolbar">
-      <button mat-raised-button color="primary" (click)="addXinghao()">新建型号</button>
-      <app-input style="width: 200px" [info]="filterInputInfo"></app-input>
-    </div>
-    <ng-scrollbar style="width: 100%">
-      <div class="xinghaos items no-items-per-row">
-        @for (xinghao of xinghaos; track $index) {
-          @if (!xinghao.hidden) {
-            <div class="item">
-              <app-image class="link" [src]="xinghao.tupian" fit="contain" (click)="enterXinghao(xinghao)"></app-image>
-              <div class="name" [matTooltip]="xinghao.mingzi">{{ xinghao.mingzi }}</div>
-              <div class="toolbar center">
-                <button mat-button color="primary" (click)="editXinghao(xinghao)">编辑</button>
-                <button mat-button color="primary" (click)="copyXinghao(xinghao)">复制</button>
-                <button mat-button color="primary" (click)="removeXinghao(xinghao)">删除</button>
-              </div>
-            </div>
-          }
-        }
-      </div>
-    </ng-scrollbar>
-  </div>
-</div>
-<div [class.hidden]="step !== 2" class="step-2 flex-column flex-110">
-  <div class="toolbar">
-    @for (info of xinghaoInputInfos; track info) {
-      <app-input [info]="info"></app-input>
-    }
-    <button mat-raised-button color="primary" (click)="copyGongyi2()">从其他型号复制工艺做法</button>
-    <button mat-raised-button color="primary" (click)="xinghaoZhuanyongGongshi()">型号专用公式</button>
-    <button mat-raised-button color="primary" (click)="openZxpj(true)">型号专用CAD</button>
-  </div>
-  @if (xinghao) {
-    <ng-scrollbar>
-      <div class="items">
-        @for (fenlei of xinghao["显示产品分类"]; track fenlei; let i = $index) {
-          @if (i > 0) {
-            <mat-divider></mat-divider>
-          }
-          <div class="产品分类 item">
-            <div class="header">
-              <div class="name title">{{ fenlei }}</div>
-            </div>
-            <div class="工艺做法 items no-items-per-row">
-              @for (gongyi of xinghao["产品分类"][fenlei]; track gongyi) {
-                <div class="item link">
-                  <app-image [src]="getFilepathUrl(gongyi['图片'])" (click)="enterGongyi(fenlei, gongyi['名字'])"> </app-image>
-                  <div class="name" (click)="enterGongyi(fenlei, gongyi['名字'])">{{ gongyi["名字"] }}</div>
-                  <div class="toolbar center">
-                    <button mat-button color="primary" (click)="editGongyi(fenlei, gongyi['名字'])">编辑</button>
-                    <button mat-button color="primary" (click)="copyGongyi(fenlei, gongyi['名字'])">复制</button>
-                    <button mat-button color="primary" (click)="removeGongyi(fenlei, gongyi['名字'])">删除</button>
-                  </div>
-                  <div class="text">停用：{{ getBooleanStr(gongyi["停用"]) }}</div>
-                  <div class="text">录入完成：{{ getBooleanStr(gongyi["录入完成"]) }}</div>
-                  <div class="text">默认值：{{ getBooleanStr(gongyi["默认值"]) }}</div>
-                </div>
-              }
-              <div class="item border link" (click)="addGongyi(fenlei)">
-                <div class="toolbar center flex-110">
-                  <button mat-icon-button color="primary"><mat-icon>add</mat-icon></button>
-                </div>
-              </div>
-            </div>
-          </div>
-        }
-      </div>
-    </ng-scrollbar>
-  }
-</div>
-<mat-tab-group
-  [class.hidden]="step !== 3"
-  class="step-3"
-  mat-stretch-tabs="false"
-  animationDuration="0ms"
-  [(selectedIndex)]="tabIndex"
-  (selectedTabChange)="onSelectedTabChange($event)"
->
-  @for (tab of tabs; track tab.name) {
-    @if (!tab.hidden) {
-      <mat-tab [label]="tab.name">
-        @switch (tab.name) {
-          @case ("下单选项输入配置") {
-            <div class="tab-content items 下单选项输入配置">
-              <app-table
-                class="item"
-                [info]="xuanxiangTable"
-                (toolbarButtonClick)="onXuanxiangToolbar($event)"
-                (rowButtonClick)="onXuanxiangRow($event)"
-              ></app-table>
-              <app-table
-                class="item"
-                [info]="shuruTable"
-                (toolbarButtonClick)="onShuruToolbar($event)"
-                (rowButtonClick)="onShuruRow($event)"
-              ></app-table>
-            </div>
-          }
-          @case ("算料数据") {
-            <app-table
-              [info]="menjiaoTable"
-              (toolbarButtonClick)="onMenjiaoToolbar($event)"
-              (rowButtonClick)="onMenjiaoRow($event)"
-            ></app-table>
-          }
-        }
-      </mat-tab>
     }
   }
-</mat-tab-group>
-
-<div #menu class="floating-menu no-print" cdkDrag (cdkDragStarted)="onMenuDragStart()" (cdkDragEnded)="onMenuDragEnd()">
-  <button mat-icon-button color="primary" [matMenuTriggerFor]="links" [disabled]="isMenuDisabled">
-    <mat-icon>apps</mat-icon>
-  </button>
+  <button mat-raised-button color="primary" [matMenuTriggerFor]="links">更多</button>
   <mat-menu #links="matMenu">
+    <button mat-menu-item><app-about></app-about></button>
     <ng-scrollbar>
-      @for (btn of btns; track $index) {
+      @for (btn of moreBtns(); track $index) {
         <button mat-menu-item (click)="btn.onClick()">{{ btn.name }}</button>
       }
     </ng-scrollbar>
   </mat-menu>
 </div>
+
+<div class="flex-110 flex-row" style="height: 0">
+  <div class="lrsj-left">
+    <app-lurushuju-nav></app-lurushuju-nav>
+  </div>
+  <mat-divider vertical></mat-divider>
+  <div class="lrsj-right">
+    <app-lrsj-xinghaos class="lrsj-piece" [class.hidden]="!pieceInfos().xinghaos.show"></app-lrsj-xinghaos>
+    <app-lrsj-zuofas class="lrsj-piece" [class.hidden]="!pieceInfos().zuofas.show"></app-lrsj-zuofas>
+    <app-lrsj-suanliao-data class="lrsj-piece" [class.hidden]="!pieceInfos().suanliaoData.show"></app-lrsj-suanliao-data>
+    <app-lrsj-suanliao-cads class="lrsj-piece" [class.hidden]="!pieceInfos().suanliaoCads.show"></app-lrsj-suanliao-cads>
+  </div>
+</div>
+
+<app-floating-dialog-trays #trays [limits]="{top: toolbar, bottom: trays.traysEl().nativeElement}"></app-floating-dialog-trays>

@@ -3,120 +3,24 @@
   --title-size: 1.2em;
 }
 
-.step-1 {
-  .menchaungs {
-    .menchuang-header {
-      width: 100%;
-      background-color: rgb(237, 191, 95);
-      padding: 5px;
-      align-items: center;
-
-      .name {
-        font-size: 18px;
-        padding: 0 2px;
-        display: flex;
-        box-sizing: border-box;
-      }
-    }
-  }
-
-  .gongyis {
-    width: 100%;
-    .item {
-      transition: 0.3s;
-      padding: 5px;
-      &.active,
-      &:hover {
-        background-color: lightgray;
-      }
-
-      .gongyi-header {
-        width: 100%;
-        align-items: center;
-
-        .name {
-          flex: 1 1 0;
-          display: flex;
-        }
-        .toolbar {
-          width: auto;
-        }
-      }
-    }
-  }
-
-  .xinghaos {
-    --item-width: 200px;
-    --item-height: 320px;
-  }
+.lrsj-left {
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
 }
-
-.step-2 {
-  .产品分类 {
-    flex-direction: row;
-    align-items: flex-start;
-    cursor: unset;
-
-    .header {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-
-      .title {
-        width: 142px;
-        font-size: 28px;
-        box-sizing: border-box;
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        height: 100%;
-        white-space: normal;
-      }
-    }
-  }
-
-  .工艺做法 {
-    flex: 1 1 0;
-    --item-width: 200px;
-    --item-height: 320px;
-  }
-}
-
-.step-3 {
+.lrsj-right {
   flex: 1 1 0;
-  ::ng-deep {
-    .mat-mdc-tab-body-wrapper {
-      flex: 1 1 0;
-    }
-  }
-
-  app-table {
-    --border: 1px solid black;
-    margin-top: 0;
-    height: 100%;
-  }
-
-  .tab-content {
-    height: 100%;
-  }
-
-  .下单选项输入配置 {
-    --item-height: 100%;
-    --items-per-row: 2;
-  }
+  position: relative;
 }
-
-app-mrbcjfz {
-  padding: 0;
+.lrsj-piece {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: white;
 }
-
-.floating-menu {
-  position: fixed;
-  cursor: pointer;
-  z-index: var(--top-z-index1);
-
-  .mat-icon {
-    width: 30px;
-    height: 30px;
-  }
+app-lrsj-suanliao-data.hidden:has(+ app-lrsj-suanliao-cads:not(.hidden)),
+app-lrsj-suanliao-data:not(.hidden) + app-lrsj-suanliao-cads.hidden {
+  display: flex !important;
+  z-index: -1;
 }
