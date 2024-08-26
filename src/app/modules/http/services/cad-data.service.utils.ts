@@ -12,7 +12,7 @@ export const getHoutaiCad = (data = new CadData(), info?: {houtaiId?: string}) =
     选项: data.options,
     条件: data.conditions,
     显示名字: data.xianshimingzi,
-    json: exportCadData(data, true)
+    json: exportCadData(data)
   };
   const {houtaiId} = info || {};
   if (houtaiId) {

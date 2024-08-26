@@ -7,9 +7,9 @@ export interface ExpressionInfo {
   vars: string[];
 }
 
-export type ExpressionDepsValue<T> = ObjectOf<T | string[]>;
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ExpressionDeps extends ExpressionDepsValue<ExpressionDeps> {}
+export interface ExpressionDeps {
+  [key: string]: ExpressionDeps | string[];
+}
 
 export interface FormulaInfo {
   vars: string[];

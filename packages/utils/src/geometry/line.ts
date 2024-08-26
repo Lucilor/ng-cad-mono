@@ -131,6 +131,14 @@ export class Line extends Curve {
     const dy = Math.sin(theta) * d;
     return this.start.clone().add(dx, dy);
   }
+  getX(y: number, tol = DEFAULT_TOLERANCE) {
+    const {a, b, c} = this.getExpression(tol);
+    return -(b * y + c) / a;
+  }
+  getY(x: number, tol = DEFAULT_TOLERANCE) {
+    const {a, b, c} = this.getExpression(tol);
+    return -(a * x + c) / b;
+  }
 
   contains(object: Point | this, extend = false, tol = DEFAULT_TOLERANCE): boolean {
     if (object instanceof Point) {

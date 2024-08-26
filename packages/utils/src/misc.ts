@@ -1,3 +1,5 @@
+import {Rectangle} from "./geometry";
+
 export const dataURLtoBlob = (dataURL: string) => {
   const arr = dataURL.split(",");
   const mime = arr[0].split(":")[1].split(";")[0];
@@ -11,14 +13,19 @@ export const dataURLtoBlob = (dataURL: string) => {
 };
 
 export const getDPI = () => {
-  const result = Array<number>();
+  let dpiX = 0;
+  let dpiY = 0;
   const tmpNode = document.createElement("div");
   tmpNode.style.cssText = "width:1in;height:1in;position:absolute;left:0px;top:0px;z-index:99;visibility:hidden";
   document.body.appendChild(tmpNode);
-  result[0] = tmpNode.offsetWidth;
-  result[1] = tmpNode.offsetHeight;
+  dpiX = tmpNode.offsetWidth;
+  dpiY = tmpNode.offsetHeight;
+  if (!(dpiX > 0) || !(dpiY > 0)) {
+    console.warn("Unable to get screen dpi.Assuming dpi = 96.");
+    dpiX = dpiY = 96;
+  }
   tmpNode.remove();
-  return result;
+  return [dpiX, dpiY] as [number, number];
 };
 
 export const timeout = <T>(time = 0, value?: T) => new Promise<T | undefined>((resolve) => setTimeout(() => resolve(value), time));
@@ -47,14 +54,15 @@ export const isTypeOf = (value: any, type: ReturnType<typeof getTypeOf> | Return
   return valueType === type;
 };
 
-export const getElementVisiblePercentage = (el: HTMLElement) => {
-  const rect = el.getBoundingClientRect();
-  const windowWidth = window.innerWidth || document.documentElement.clientWidth;
-  const windowHeight = window.innerHeight || document.documentElement.clientHeight;
-  const area = rect.width * rect.height;
-  const xVisible = Math.min(rect.right, windowWidth) - Math.max(rect.left, 0);
-  const yVisible = Math.min(rect.bottom, windowHeight) - Math.max(rect.top, 0);
-  const visibleArea = xVisible * yVisible;
-  const visiblePercentage = (visibleArea / area) * 100;
+export const getElementVisiblePercentage = (el: HTMLElement, parentEl = document.body) => {
+  const rect0 = el.getBoundingClientRect();
+  const parentRect0 = parentEl.getBoundingClientRect();
+  const rect = new Rectangle([rect0.left, rect0.top], [rect0.right, rect0.bottom]);
+  const parentRect = new Rectangle([parentRect0.left, parentRect0.top], [parentRect0.right, parentRect0.bottom]);
+  const visibleArea = rect.intersects(parentRect)?.area || 0;
+  const visiblePercentage = (visibleArea / rect.area) * 100;
   return visiblePercentage;
 };
+
+export const px2mm = (px: number, dpi: number) => (px * 25.4) / dpi;
+export const mm2px = (mm: number, dpi: number) => (mm * dpi) / 25.4;

@@ -417,7 +417,7 @@ export class SelectBancaiComponent extends Subscribed() {
     try {
       url = await this.http.getData<string | string[]>(api, data);
       await this.refreshDownloadHistory();
-    } catch (error) {}
+    } catch {}
     if (url) {
       this.xikongData = null;
       if (Array.isArray(url)) {

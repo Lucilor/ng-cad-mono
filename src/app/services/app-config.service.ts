@@ -4,7 +4,7 @@ import {CadViewerConfig} from "@lucilor/cad-viewer";
 import {keysOf, ObjectOf} from "@lucilor/utils";
 import {CadDataService} from "@modules/http/services/cad-data.service";
 import {cloneDeep, isEqual} from "lodash";
-import {BehaviorSubject} from "rxjs";
+import {BehaviorSubject, Subject} from "rxjs";
 
 export interface AppConfig extends CadViewerConfig {
   infoTabIndex: number;
@@ -33,6 +33,7 @@ export type AppConfigChangeOptions = Partial<Omit<AppConfigChange, "oldVal" | "n
 export class AppConfigService {
   private config$: BehaviorSubject<AppConfig>;
   configChange$: BehaviorSubject<AppConfigChange>;
+  userConfigSaved$: Subject<boolean>;
   private _userConfig: Partial<AppConfig> = {};
   private _configKeys: (keyof AppConfig)[];
   noUser = false;
@@ -82,20 +83,11 @@ export class AppConfigService {
       sync: false,
       isUserConfig: true
     });
+    this.userConfigSaved$ = new Subject();
 
-    const setConfigInterval = 1000;
-    let id = -1;
-    let config: Partial<AppConfig> = {};
-    this.configChange$.subscribe(({newVal, sync}) => {
-      if (sync) {
-        config = {...config, ...newVal};
-        if (Object.keys(config).length) {
-          window.clearInterval(id);
-          id = window.setTimeout(() => {
-            this.setUserConfig(config);
-            config = {};
-          }, setConfigInterval);
-        }
+    this.configChange$.subscribe(async ({newVal, sync}) => {
+      if (sync && Object.keys(newVal).length) {
+        this.userConfigSaved$.next(await this.setUserConfig(newVal));
       }
     });
   }
@@ -159,8 +151,8 @@ export class AppConfigService {
     const [oldVal2, newVal2] = this._purgeConfig(oldVal, newVal);
     const sync = options?.sync ?? true;
     const isUserConfig = options?.isUserConfig ?? false;
-    this.configChange$.next({oldVal: oldVal2, newVal: newVal2, sync, isUserConfig});
     this.config$.next({...oldVal, ...newVal2});
+    this.configChange$.next({oldVal: oldVal2, newVal: newVal2, sync, isUserConfig});
     return oldVal2;
   }
 

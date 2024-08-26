@@ -11,7 +11,6 @@ export interface MrbcjfzResponseData {
   huajians: MrbcjfzHuajian[];
   qiliaos: string[];
   bancaiKeys: string[];
-  bancaiKeysNonClear: string[];
   bancaiKeysRequired: string[];
   bancaiList: BancaiList[];
   xiaodaohangStructure: XiaodaohangStructure;

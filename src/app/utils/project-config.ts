@@ -41,6 +41,10 @@ export class ProjectConfig {
   remove(key: string) {
     delete this.raw[key];
   }
+
+  exists(key: string) {
+    return key in this.raw;
+  }
 }
 
 export type ProjectConfigRaw = ObjectOf<string>;

@@ -1,0 +1,140 @@
+<ng-container *ngTemplateOutlet="componentsTpl; context: {$implicit: components()}"></ng-container>
+<ng-template #componentsTpl [appTypedTemplate]="componentsTplType" let-components>
+  @for (component of components; track $index) {
+    <div
+      #componentEl
+      class="page-component"
+      [class]="component.type"
+      [class.editing]="editingComponent()?.id === component.id"
+      [attr.data-id]="component.id"
+      [style]="getComponentStyle(component)"
+      (click)="clickComponent($event, component)"
+      (dblclick)="dblClickComponent($event, component, componentEl)"
+      cdkDrag
+      cdkDragBoundary="app-page-components-diaplay"
+      [cdkDragDisabled]="getComponentDragDisabled(component)"
+      (cdkDragStarted)="moveComponentStart(component)"
+      (cdkDragMoved)="moveComponent($event)"
+      (cdkDragEnded)="moveComponentEnd($event)"
+    >
+      @if (controls()[component.id]; as control) {
+        <div class="page-component-control" [class]="control.class" [style]="control.style">
+          @for (point of controlPoints; track $index) {
+            <div
+              class="point"
+              [class]="point.position"
+              cdkDrag
+              [cdkDragLockAxis]="point.axis"
+              (cdkDragStarted)="moveResizePointStart(component)"
+              (cdkDragMoved)="moveResizePoint($event, point)"
+              (cdkDragEnded)="moveResizePointEnd($event)"
+            >
+              <div class="point-inner"></div>
+            </div>
+          }
+          <div
+            class="rotate-point"
+            cdkDrag
+            (cdkDragStarted)="moveRotatePointStart(component)"
+            (cdkDragMoved)="moveRotatePoint($event, componentEl)"
+            (cdkDragEnded)="moveRotatePointEnd($event)"
+          >
+            <mat-icon>rotate_right</mat-icon>
+          </div>
+        </div>
+      }
+      <div class="page-component-content">
+        @switch (component.type) {
+          @case ("text") {
+            <textarea
+              class="snap"
+              matInput
+              [value]="component.text"
+              [readonly]="editingComponent()?.id !== component.id"
+              (input)="onComponentTextInput($event, component)"
+              cdkTextareaAutosize
+              cdkAutosizeMinRows="1"
+            ></textarea>
+          }
+          @case ("image") {
+            <app-image
+              class="snap"
+              [src]="component.src"
+              [objectFit]="component.objectFit"
+              (imgEnd)="onImgEnd($event, component)"
+            ></app-image>
+          }
+          @case ("form") {
+            <ng-template #formCellItem let-cell let-i="i" let-j="j" let-k="k" let-wrap="wrap">
+              @if (wrap) {
+                <textarea
+                  matInput
+                  [value]="cell[k]"
+                  [readonly]="this.editingComponent()?.id !== component.id"
+                  (input)="onComponentFormInput($event, component, i, j, k)"
+                  cdkTextareaAutosize
+                  cdkAutosizeMinRows="1"
+                ></textarea>
+              } @else {
+                <input
+                  matInput
+                  [value]="cell[k]"
+                  [readonly]="this.editingComponent()?.id !== component.id"
+                  (input)="onComponentFormInput($event, component, i, j, k)"
+                />
+              }
+            </ng-template>
+            @for (row of component.values; track i; let i = $index) {
+              <div class="row">
+                @for (cell of row; track j; let j = $index) {
+                  <div class="cell">
+                    <div class="label snap" [class]="{'has-separator': component.labelSeparator, wrap: component.labelWrap}">
+                      <ng-container
+                        *ngTemplateOutlet="formCellItem; context: {$implicit: cell, i: i, j: j, k: 0, wrap: component.labelWrap}"
+                      ></ng-container>
+                    </div>
+                    <div class="value snap" [class]="{wrap: component.valueWrap}">
+                      <ng-container
+                        *ngTemplateOutlet="formCellItem; context: {$implicit: cell, i: i, j: j, k: 1, wrap: component.valueWrap}"
+                      ></ng-container>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+          @case ("rect") {
+            <div class="snap"></div>
+          }
+          @case ("group") {
+            <ng-container *ngTemplateOutlet="componentsTpl; context: {$implicit: component.children}"></ng-container>
+          }
+        }
+      </div>
+    </div>
+  }
+</ng-template>
+
+@if (helpers(); as helpers) {
+  <div
+    class="helpers"
+    [style]="{
+      '--axis-x': helpers.axisX.snap?.from + 'px',
+      '--axis-y': helpers.axisY.snap?.from + 'px',
+      '--rotate-x': helpers.rotation.position[0] + 'px',
+      '--rotate-y': helpers.rotation.position[1] + 'px',
+      '--rotate-deg': helpers.rotation.deg + 'deg',
+      '--rotate-size': helpers.rotation.size + 'mm'
+    }"
+  >
+    @if (helpers.axisX.show) {
+      <div class="helper axis-x"></div>
+    }
+    @if (helpers.axisY.show) {
+      <div class="helper axis-y"></div>
+    }
+    @if (helpers.rotation.show) {
+      <div class="helper rotate"></div>
+    }
+  </div>
+}

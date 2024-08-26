@@ -109,14 +109,12 @@ export class CadAssembleComponent extends Subscribed() implements OnInit, OnDest
     this.lines = difference(this.lines, ids);
   };
 
-  // eslint-disable-next-line @typescript-eslint/member-ordering
   private _onMoveEntities: CadEventCallBack<"moveentities"> = debounce(() => {
     if (this.pointsAssembling > 0) {
       this._setCadPoints();
     }
   }, 500).bind(this);
 
-  // eslint-disable-next-line @typescript-eslint/member-ordering
   private _onZoom: CadEventCallBack<"zoom"> = debounce(() => {
     if (this.pointsAssembling > 0) {
       this._setCadPoints();

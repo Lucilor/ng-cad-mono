@@ -15,6 +15,7 @@ export interface TableRenderInfo<T> {
   checkBoxSize?: number;
   editMode?: boolean;
   sortable?: boolean;
+  filterable?: boolean | {searchColumns?: string[]};
   validator?: TableValidator<T>;
   activeRows?: number[];
   dataTransformer?: DataTransformer<T>;

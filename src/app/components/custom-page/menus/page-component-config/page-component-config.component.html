@@ -1,0 +1,81 @@
+<div class="toolbar">
+  @if (canGroup()) {
+    <button mat-stroked-button color="primary" (click)="group()">分组</button>
+  }
+  @if (canUngroup()) {
+    <button mat-stroked-button color="primary" (click)="ungroup()">拆分</button>
+  }
+  <button mat-stroked-button color="primary" (click)="copyAndPaste()">复制</button>
+  <button mat-stroked-button color="primary" (click)="remove()">删除</button>
+</div>
+<ng-scrollbar class="enable-x">
+  <ng-container *ngTemplateOutlet="componentsTpl; context: {$implicit: components(), level: 0, id: 'main'}"></ng-container>
+</ng-scrollbar>
+<ng-template #componentsTpl [appTypedTemplate]="componentsTplType" let-components let-level="level" let-id="id">
+  <div
+    class="items"
+    [id]="id"
+    cdkDropList
+    cdkDropListLockAxis="y"
+    [cdkDropListData]="components"
+    [cdkDropListConnectedTo]="dropListIds()"
+    [cdkDropListDisabled]="isDropListDisabled()"
+    (cdkDropListDropped)="drop($event)"
+  >
+    @for (component of components; track $index) {
+      <div
+        class="item"
+        [class]="{active: isActiveComponent(component), hover: hoveringId() === component.id}"
+        cdkDrag
+        (click)="click($event, component)"
+        appClickStop
+        (pointerenter)="pointerEnter($event, component)"
+        (pointerleave)="pointerLeave($event, component)"
+      >
+        <div class="cdk-drag-placeholder" *cdkDragPlaceholder></div>
+        <div class="toolbar">
+          <button mat-icon-button (click)="toggleHidden(component)" appClickStop>
+            @if (component.isHidden()) {
+              <mat-icon>visibility_off</mat-icon>
+            } @else {
+              <mat-icon>visibility</mat-icon>
+            }
+          </button>
+          <button mat-icon-button (click)="toggleLock(component)" appClickStop>
+            @if (component.isLocked()) {
+              <mat-icon>lock</mat-icon>
+            } @else {
+              <mat-icon>lock_open</mat-icon>
+            }
+          </button>
+          <div class="name toolbar" [style]="{'--level': level}">
+            @if (level > 0) {
+              <div class="level"></div>
+            }
+            @if (component.type === "group") {
+              <button mat-icon-button (click)="toggleExpanded(component)" appClickStop>
+                @if (component.expanded) {
+                  <mat-icon>folder_open</mat-icon>
+                } @else {
+                  <mat-icon>folder</mat-icon>
+                }
+              </button>
+            } @else {
+              <mat-icon>description</mat-icon>
+            }
+            @if (editingId() === component.id) {
+              <input matInput autofocus [(ngModel)]="component.name" (blur)="blur()" (keydown.enter)="blur()" (keydown.escape)="blur()" />
+            } @else {
+              <span (dblclick)="dblClick($event, component)">{{ component.name }}</span>
+            }
+          </div>
+        </div>
+        @if (isComponentGroup(component) && component.expanded) {
+          <ng-container
+            *ngTemplateOutlet="componentsTpl; context: {$implicit: component.children, level: level + 1, id: component.id}"
+          ></ng-container>
+        }
+      </div>
+    }
+  </div>
+</ng-template>

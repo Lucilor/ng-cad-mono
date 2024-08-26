@@ -146,7 +146,7 @@ export class MessageService {
     const snackBarRef = this.snackBar.open(message, action, config);
     try {
       await lastValueFrom(snackBarRef.onAction());
-    } catch (error) {}
+    } catch {}
     if (!action) {
       snackBarRef.dismiss();
     }

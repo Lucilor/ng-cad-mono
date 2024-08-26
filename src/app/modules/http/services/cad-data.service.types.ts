@@ -47,6 +47,7 @@ export interface GetOptionsParams {
   filter?: ObjectOf<any>;
   fields?: string[];
   nameField?: string;
+  info?: ObjectOf<any>;
 }
 
 export interface OptionsData<T extends OptionsDataData = OptionsDataData> {
@@ -159,7 +160,6 @@ export interface MongodbDataBase {
 export interface BancaiListData {
   bancais: BancaiList[];
   bancaiKeys: string[];
-  bancaiKeysNonClear: string[];
   bancaiKeysRequired: string[];
   qiliaos: string[];
 }

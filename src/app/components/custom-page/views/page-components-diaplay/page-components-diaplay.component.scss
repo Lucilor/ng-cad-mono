@@ -1,0 +1,252 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.page-component {
+  position: absolute;
+  z-index: 1;
+
+  &.text,
+  &.form {
+    textarea,
+    input {
+      outline: none;
+      border: none;
+      width: 100%;
+      padding: 0;
+      font-size: inherit;
+      font-family: inherit;
+      color: inherit;
+      background: inherit;
+      line-height: inherit;
+      text-align: inherit;
+    }
+  }
+  &.image {
+    app-image {
+      ::ng-deep img {
+        width: 100%;
+        height: 100%;
+      }
+    }
+  }
+  &.form {
+    .row {
+      display: flex;
+      height: var(--row-height);
+      &:not(:last-child) {
+        border-bottom: var(--border);
+      }
+    }
+
+    .cell {
+      display: flex;
+      align-items: center;
+      &:not(:last-child) {
+        border-right: var(--border);
+      }
+    }
+    .label,
+    .value {
+      height: var(--row-height);
+      display: flex;
+      align-items: center;
+      box-sizing: border-box;
+    }
+    .label {
+      width: var(--label-width);
+      padding: var(--label-padding);
+      &.has-separator {
+        border-right: var(--border);
+      }
+    }
+    .value {
+      width: var(--value-width);
+      padding: var(--value-padding);
+    }
+
+    input {
+      white-space: nowrap;
+      height: 100%;
+    }
+  }
+}
+
+.page-component-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.page-component-control {
+  --border-width: 2px;
+  --border-style: solid;
+  --border-color: var(--primary-color);
+  --padding: 5px;
+  --point-size: 5px;
+  --rotate-point-size: 24px;
+  --border-width-half: calc(var(--border-width) / 2);
+  --top: calc(0px - var(--border-width-half));
+  --left: calc(0px - var(--border-width-half));
+  --bottom: calc(100% + var(--border-width-half));
+  --right: calc(100% + var(--border-width-half));
+  --offset-x: 0px;
+  --offset-y: 0px;
+  --offset-w: 0px;
+  --offset-h: 0px;
+
+  position: absolute;
+  top: calc(var(--offset-y) - var(--padding) - var(--border-width) - var(--component-border-width));
+  left: calc(var(--offset-x) - var(--padding) - var(--border-width) - var(--component-border-width));
+  width: calc(100% + var(--offset-w) + var(--component-border-width) * 2);
+  height: calc(100% + var(--offset-h) + var(--component-border-width) * 2);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border-color);
+  padding: var(--padding);
+
+  &.locked {
+    --border-color: var(--accent-color);
+  }
+
+  > * {
+    position: absolute;
+  }
+
+  .point {
+    width: var(--point-size);
+    height: var(--point-size);
+    display: none;
+    &.top,
+    &.bottom {
+      width: 100%;
+      height: var(--border-width);
+      .point-inner {
+        left: 50%;
+      }
+    }
+    &.left,
+    &.right {
+      width: var(--border-width);
+      height: 100%;
+      .point-inner {
+        top: 50%;
+      }
+    }
+    &.top {
+      top: var(--top);
+      left: 0;
+      cursor: n-resize;
+    }
+    &.left {
+      top: 0;
+      left: var(--left);
+      cursor: w-resize;
+    }
+    &.right {
+      top: 0;
+      left: var(--right);
+      cursor: e-resize;
+    }
+    &.bottom {
+      top: var(--bottom);
+      left: 0;
+      cursor: s-resize;
+    }
+    &.top-left {
+      top: var(--top);
+      left: var(--left);
+      cursor: nw-resize;
+    }
+    &.top-right {
+      top: var(--top);
+      left: var(--right);
+      cursor: ne-resize;
+    }
+    &.bottom-left {
+      top: var(--bottom);
+      left: var(--left);
+      cursor: sw-resize;
+    }
+    &.bottom-right {
+      top: var(--bottom);
+      left: var(--right);
+      cursor: se-resize;
+    }
+  }
+  .point-inner {
+    position: absolute;
+    border-width: var(--border-width);
+    border-style: var(--border-style);
+    border-color: var(--border-color);
+    border-radius: 50%;
+    width: var(--point-size);
+    height: var(--point-size);
+    transform: translate(-50%, -50%);
+  }
+  &.resize-x {
+    .point.left,
+    .point.right {
+      display: block;
+    }
+  }
+  &.resize-y {
+    .point.top,
+    .point.bottom {
+      display: block;
+    }
+  }
+  &.resize-x.resize-y {
+    .point.top-left,
+    .point.top-right,
+    .point.bottom-left,
+    .point.bottom-right {
+      display: block;
+    }
+  }
+
+  .rotate-point {
+    --mat-icon-size: var(--rotate-point-size);
+    width: var(--rotate-point-size);
+    height: var(--rotate-point-size);
+    left: calc(50% - var(--rotate-point-size) / 2);
+    top: calc(var(--top) - 5px - var(--rotate-point-size));
+    cursor: grab;
+    color: var(--border-color);
+    display: none;
+  }
+  &.rotate {
+    .rotate-point {
+      display: block;
+    }
+  }
+}
+
+.helpers {
+  .helper {
+    position: absolute;
+    --helper-size: 1px;
+    background: var(--accent-color);
+    opacity: 0.75;
+    &.axis-x {
+      top: 0;
+      left: calc(var(--axis-x) - var(--helper-size) / 2);
+      width: var(--helper-size);
+      height: 100%;
+    }
+    &.axis-y {
+      top: calc(var(--axis-y) - var(--helper-size) / 2);
+      left: 0;
+      width: 100%;
+      height: var(--helper-size);
+    }
+    &.rotate {
+      top: calc(var(--rotate-y) - var(--rotate-size) / 2);
+      left: var(--rotate-x);
+      width: var(--helper-size);
+      height: var(--rotate-size);
+      transform: rotate(var(--rotate-deg));
+    }
+  }
+}

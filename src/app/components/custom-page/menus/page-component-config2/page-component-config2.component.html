@@ -1,0 +1,32 @@
+@if (componentMenuStyle(); as style) {
+  <div
+    #componentMenu
+    class="componet-menu item"
+    [style]="style"
+    cdkDrag
+    cdkDragBoundary=".work-space"
+    (cdkDragEnded)="moveComponentMenuEnd($event)"
+  >
+    <div class="toolbar">
+      <div class="name" cdkDragHandle>组件设置</div>
+      <button mat-icon-button (click)="closeComponentMenu()"><mat-icon>close</mat-icon></button>
+    </div>
+    <ng-scrollbar class="componet-menu-content" style="flex-basis: auto">
+      @for (group of componentMenuInputs(); track $index) {
+        <ng-template #inputs>
+          @for (info of group.infos; track $index) {
+            <app-input [info]="info"></app-input>
+          }
+        </ng-template>
+        @if (group.name) {
+          <mat-expansion-panel [expanded]="group.expanded" (expandedChange)="onExpandedChange(group, $event)">
+            <mat-expansion-panel-header>{{ group.name }}</mat-expansion-panel-header>
+            <ng-container *ngTemplateOutlet="inputs"></ng-container>
+          </mat-expansion-panel>
+        } @else {
+          <ng-container *ngTemplateOutlet="inputs"></ng-container>
+        }
+      }
+    </ng-scrollbar>
+  </div>
+}

@@ -34,7 +34,7 @@ export class HttpServiceResponseError extends Error {
     } else if (responseData !== null && responseData !== undefined) {
       const dataJson = JSON.stringify(responseData, null, 2);
       message = dataJson;
-      details = hljs.highlight("json", dataJson).value.replace(/\n/g, "<br>");
+      details = hljs.highlight(dataJson, {language: "json"}).value.replace(/\n/g, "<br>");
       details = `<pre class="hljs">${details}</pre>`;
     } else {
       message = "未知错误";

@@ -3,6 +3,7 @@ import axios from "axios";
 import compressing from "compressing";
 import FormData from "form-data";
 import fs from "fs";
+import minimist from "minimist";
 import path from "path";
 
 const postFormData = (url: string, data: ObjectOf<any>, file?: fs.ReadStream) => {
@@ -15,12 +16,13 @@ const postFormData = (url: string, data: ObjectOf<any>, file?: fs.ReadStream) =>
 };
 
 const token = process.env.SERVER_TOKEN;
+const args = minimist(process.argv.slice(2));
 const host = "https://www.let888.cn";
 const targetDir = "../dist/ng-cad2/browser";
 
 const tmpDir = "../.tmp";
 const zipName = "upload.zip";
-const project = "ng-cad2";
+const project = args.beta ? "ng-cad2-beta" : "ng-cad2";
 
 const upload = async () => {
   fs.cpSync(targetDir, path.join(tmpDir, project), {recursive: true});

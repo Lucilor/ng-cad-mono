@@ -1,6 +1,7 @@
 import {CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, moveItemInArray} from "@angular/cdk/drag-drop";
+import {NestedTreeControl} from "@angular/cdk/tree";
 import {KeyValuePipe, NgTemplateOutlet} from "@angular/common";
-import {Component, ElementRef, HostBinding, HostListener, Inject, OnInit, QueryList, ViewChild, ViewChildren} from "@angular/core";
+import {Component, ElementRef, HostBinding, HostListener, Inject, OnInit, ViewChild} from "@angular/core";
 import {Validators} from "@angular/forms";
 import {MatButtonModule} from "@angular/material/button";
 import {MAT_DIALOG_DATA, MatDialog, MatDialogRef} from "@angular/material/dialog";
@@ -9,7 +10,8 @@ import {MatIconModule} from "@angular/material/icon";
 import {MatMenuModule, MatMenuTrigger} from "@angular/material/menu";
 import {MatSlideToggleModule} from "@angular/material/slide-toggle";
 import {MatTooltipModule} from "@angular/material/tooltip";
-import {imgCadEmpty, remoteFilePath, session, setGlobal} from "@app/app.common";
+import {MatTreeModule, MatTreeNestedDataSource} from "@angular/material/tree";
+import {getNameWithSuffix, imgCadEmpty, remoteFilePath, session, setGlobal} from "@app/app.common";
 import {setCadData} from "@app/cad/cad-shujuyaoqiu";
 import {CadCollection} from "@app/cad/collections";
 import {setDimensionText, uploadAndReplaceCad} from "@app/cad/utils";
@@ -17,13 +19,15 @@ import {CadItemComponent} from "@app/components/lurushuju/cad-item/cad-item.comp
 import {CadItemButton} from "@app/components/lurushuju/cad-item/cad-item.types";
 import {getCadInfoInputs2} from "@app/modules/cad-editor/components/menu/cad-info/cad-info.utils";
 import {getHoutaiCad} from "@app/modules/http/services/cad-data.service.utils";
+import {convertOptions} from "@app/modules/input/components/input.utils";
 import {toFixed} from "@app/utils/func";
 import {openExportPage} from "@app/views/export/export.utils";
 import {ImportCache} from "@app/views/import/import.types";
 import {openImportPage} from "@app/views/import/import.utils";
 import {CadImageComponent} from "@components/cad-image/cad-image.component";
 import {Debounce} from "@decorators/debounce";
-import {CadData, CadLine, CadLineLike, CadMtext, CadViewer, CadViewerConfig, CadZhankai, setLinesLength} from "@lucilor/cad-viewer";
+import {environment} from "@env";
+import {CadData, CadLine, CadLineLike, CadMtext, CadViewer, CadViewerConfig, setLinesLength} from "@lucilor/cad-viewer";
 import {getElementVisiblePercentage, ObjectOf, queryStringList, timeout} from "@lucilor/utils";
 import {ContextMenu} from "@mixins/context-menu.mixin";
 import {CadDataService} from "@modules/http/services/cad-data.service";
@@ -32,10 +36,9 @@ import {InputInfo} from "@modules/input/components/input.types";
 import {MessageService} from "@modules/message/services/message.service";
 import {AppStatusService} from "@services/app-status.service";
 import {CalcService} from "@services/calc.service";
-import {cloneDeep, debounce, isEqual, uniq, uniqueId} from "lodash";
-import md5 from "md5";
+import {cloneDeep, debounce, uniq, uniqueId} from "lodash";
 import {NgScrollbar} from "ngx-scrollbar";
-import {BehaviorSubject, filter, take} from "rxjs";
+import {BehaviorSubject} from "rxjs";
 import {ClickStopPropagationDirective} from "../../../modules/directives/click-stop-propagation.directive";
 import {TypedTemplateDirective} from "../../../modules/directives/typed-template.directive";
 import {ImageComponent} from "../../../modules/image/components/image/image.component";
@@ -50,8 +53,10 @@ import {
   CadItemContext,
   CadItemInputInfo,
   LingsanCadItemInfo,
+  LingsanTypesData,
   MokuaiInputInfos,
   Step1Data,
+  TypesMapNode,
   ZixuanpeijianCadItem,
   ZixuanpeijianInfo,
   ZixuanpeijianInput,
@@ -67,6 +72,7 @@ import {
   getStep1Data,
   getZixuanpeijianCads,
   importZixuanpeijian,
+  step3FetchData,
   updateMokuaiItems
 } from "./zixuanpeijian.utils";
 
@@ -76,8 +82,8 @@ import {
   styleUrls: ["./zixuanpeijian.component.scss"],
   standalone: true,
   imports: [
-    CadItemComponent,
     CadImageComponent,
+    CadItemComponent,
     CdkDrag,
     CdkDragHandle,
     CdkDropList,
@@ -91,6 +97,7 @@ import {
     MatMenuModule,
     MatSlideToggleModule,
     MatTooltipModule,
+    MatTreeModule,
     NgScrollbar,
     NgTemplateOutlet,
     SpinnerComponent,
@@ -114,32 +121,47 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
   getMokuaiTitle = getMokuaiTitle;
   @ViewChild(MatMenuTrigger) contextMenu!: MatMenuTrigger;
   @ViewChild("lingsanTypesScrollbar") lingsanTypesScrollbar?: NgScrollbar;
+  @ViewChild("lingsanTypesTree", {read: ElementRef}) lingsanTypesTreeEl?: ElementRef<HTMLElement>;
   @ViewChild("lingsanLeftScrollbar") lingsanLeftScrollbar?: NgScrollbar;
   @ViewChild("lingsanRightScrollbar") lingsanRightScrollbar?: NgScrollbar;
-  @ViewChildren("typesButton", {read: ElementRef}) typesButtons?: QueryList<ElementRef<HTMLButtonElement>>;
   contextMenuData = {i: -1, j: -1};
   fractionDigits = 1;
   _step1Fetched = false;
   _step2Fetched = false;
   _step3Fetched = false;
   cadItemType!: CadItemContext;
+  production = environment.production;
 
   collection: CadCollection = "cad";
   mokuaiInputInfos: MokuaiInputInfos[] = [];
   lingsanInputInfos: CadItemInputInfo[] = [];
   dropDownOptions: {label: string; value: string; customClass?: string}[] = [];
   lingsanCads: ObjectOf<ZixuanpeijianlingsanCadItem[] | undefined> = {};
-  lingsanCadInfos: Array<{type: string; hidden: boolean}> = [];
   lingsanCadType = "";
-  lingsanSortedTypes: string[] | null | undefined;
+  lingsanTypesTables: LingsanTypesData["tables"] = [];
+  lingsanTypesDataSource = new MatTreeNestedDataSource<TypesMapNode>();
+  lingsanTypesTreeControl = new NestedTreeControl<TypesMapNode>((node) => node.children);
+  lingsanTypesEditMode = false;
+  lingsanTypesShowCount = true;
+  hasChild = (_: number, node: TypesMapNode) => !!node.children && node.children.length > 0;
   searchLingsanValueKey = "zixuanpeijian-searchLingsanValue";
-  searchLingsanValue = session.load(this.searchLingsanValueKey) || "";
+  searchLingsanValue = session.load<string>(this.searchLingsanValueKey) || "";
   lingsanCadsSearchInput: InputInfo = {
     type: "string",
     label: "搜索",
     clearable: true,
     model: {data: this, key: "searchLingsanValue"},
     onInput: debounce(this.filterLingsanItems.bind(this), 200)
+  };
+  searchLingsanTypeKey = "zixuanpeijian-searchLingsanType";
+  searchLingsanType = session.load<string>(this.searchLingsanTypeKey) || "";
+  lingsanTypesSearchInput: InputInfo = {
+    type: "string",
+    label: "搜索",
+    clearable: true,
+    model: {data: this, key: "searchLingsanType"},
+    onInput: debounce(this.filterLingsanTypes.bind(this), 200),
+    style: {width: "100px"}
   };
   lingsanCadViewers: CadViewer[] = [];
   imgCadEmpty = imgCadEmpty;
@@ -153,10 +175,6 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
     model: {data: this, key: "searchMokuaiValue"},
     onInput: debounce(this.filterMokuaiItems.bind(this), 200)
   };
-  isEditingFenlei$ = new BehaviorSubject<boolean>(false);
-  get isEditingFenlei() {
-    return this.isEditingFenlei$.value;
-  }
   downloadApi = this.http.getUrl("ngcad/downloadFile");
   lingsanCadItemButtons: CadItemButton<LingsanCadItemInfo>[];
   multiDeleting = false;
@@ -402,23 +420,14 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
   }
 
   async step3Fetch(noUpdateInputInfos = false, noCache = false, preserveImgs = false) {
-    let responseData: {cads: CadData[]} | null = null;
-    const {getAll, typePrefix, xinghao} = this.data?.lingsanOptions || {};
-    const cacheKey = "_lingsanCadsCache_" + md5(JSON.stringify({getAll, typePrefix, xinghao}));
-    if (noCache || !(window as any)[cacheKey]) {
-      responseData = await this.http.getData<{cads: CadData[]}>("ngcad/getLingsanCads", {getAll, typePrefix, xinghao});
-      (window as any)[cacheKey] = responseData;
-    } else {
-      responseData = (window as any)[cacheKey];
-    }
+    const lingsanOptions = this.data?.lingsanOptions;
+    const responseData = await step3FetchData(this.http, lingsanOptions, noCache);
     if (responseData) {
       if (!preserveImgs) {
         this.lingsanCadImgs = {};
       }
       this.lingsanCadInfos = [];
       this.lingsanCads = {};
-      this.lingsanSortedTypes = await this.http.getData("ngcad/getLingsanSortedTypes");
-      const {noValidateCads} = this.data || {};
       for (const v of responseData.cads) {
         const data = new CadData(v);
         const item: ZixuanpeijianlingsanCadItem = {data, hidden: false, isFetched: false};
@@ -428,6 +437,13 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
         }
         this.lingsanCads[type]?.push(item);
       }
+      const responseData2 = await this.http.getData<LingsanTypesData>("ngcad/getLingsanTypes", {
+        allTypes: Object.keys(this.lingsanCads),
+        ...lingsanOptions
+      });
+      this.lingsanTypesTables = responseData2?.tables || [];
+      this.lingsanTypesDataSource.data = responseData2?.typesMap || [];
+      const {noValidateCads} = this.data || {};
       const toRemove: number[] = [];
       for (const [i, item] of this.result.零散.entries()) {
         let found: ZixuanpeijianlingsanCadItem | undefined;
@@ -454,42 +470,30 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
       if (toRemove.length > 0) {
         this.result.零散 = this.result.零散.filter((_, i) => !toRemove.includes(i));
       }
-
-      for (const type in this.lingsanCads) {
-        if (!this.lingsanCadInfos.find((v) => v.type === type)) {
-          this.lingsanCadInfos.push({type, hidden: false});
-        }
-      }
-      await this.sortLingsanCadInfos();
     }
     if (noUpdateInputInfos) {
       this._updateInputInfos();
     }
     this.status.fetchCad数据要求List();
     this._step3Fetched = true;
+    this.filterLingsanItems();
   }
 
-  async sortLingsanCadInfos() {
-    const lingsanSortedTypes = this.lingsanSortedTypes;
-    if (Array.isArray(lingsanSortedTypes)) {
-      this.lingsanCadInfos.sort((a, b) => {
-        const ai = lingsanSortedTypes.indexOf(a.type);
-        const bi = lingsanSortedTypes.indexOf(b.type);
-        return ai - bi;
-      });
-    }
+  step3Refresh(preserveImgs = false, noCache = true) {
+    this.step$.next({value: 3, refresh: true, noCache, preserveImgs});
   }
 
-  step3Refresh(preserveImgs = false) {
-    this.step$.next({value: 3, refresh: true, noCache: true, preserveImgs});
+  getLingsanYaoqiu() {
+    return this.status.getCad数据要求(this.lingsanCadType || "分类为空");
   }
 
   async step3Add() {
-    const yaoqiu = this.status.getCad数据要求(this.lingsanCadType || "分类为空");
+    const yaoqiu = this.getLingsanYaoqiu();
     const cadData = new CadData({type: this.lingsanCadType});
     const yaoqiuItems = yaoqiu?.新建CAD要求 || [];
+    const yaoqiuItems2 = yaoqiu?.选中CAD要求 || [];
     setCadData(cadData, yaoqiuItems);
-    const form = getCadInfoInputs2(yaoqiuItems, cadData, this.dialog, this.status, true);
+    const form = getCadInfoInputs2(yaoqiuItems, yaoqiuItems2, cadData, this.dialog, this.status, true, this.data?.gongshis);
     const result = await this.message.form<typeof data>(form);
     if (!result) {
       return;
@@ -497,7 +501,6 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
     const {uploadDxf} = cadData.info;
     if (uploadDxf instanceof File) {
       await uploadAndReplaceCad(uploadDxf, cadData, true, this.message, this.http);
-      console.log(cadData.options.产品分类);
     }
     const {xinghao} = this.data?.lingsanOptions || {};
     if (xinghao) {
@@ -512,7 +515,8 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
         const {cads} = await this.http.getCad({collection, id});
         const data = cads[0];
         if (data) {
-          await openCadEditorDialog(this.dialog, {data: {data, collection, center: true}});
+          const gongshis = this.data?.gongshis;
+          await openCadEditorDialog(this.dialog, {data: {data, collection, center: true, gongshis}});
         }
       }
       this.step3Refresh();
@@ -624,14 +628,6 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
         await this.step3Fetch(false, noCache, preserveImgs);
         isRefreshed = true;
       }
-      const lingsanCadType = this.data?.lingsanCadType;
-      const hasType = (type: string) => this.lingsanCadInfos.find((v) => v.type === type);
-      if (lingsanCadType && hasType(lingsanCadType)) {
-        this.setlingsanCadType(lingsanCadType);
-      } else if (!hasType(this.lingsanCadType)) {
-        this.setlingsanCadType(this.lingsanCadInfos[0]?.type);
-      }
-      this.filterLingsanItems();
       await timeout(500);
       if (lingsanCadTypePrev === this.lingsanCadType) {
         this.lingsanLeftScrollbar?.scrollTo({top: scrollTop});
@@ -993,14 +989,12 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
       }
     }
     const data = item.data.clone(!isEditingFenlei);
-    data.zhankai = [new CadZhankai({name: data.name})];
-    data.entities.forEach((e) => {
-      if (e instanceof CadLineLike) {
-        e.mingzi = "";
-        e.gongshi = "";
-        e.guanlianbianhuagongshi = "";
-      }
-    });
+    data.info.imgId = await this.http.getMongoId();
+    const yaoqiu = this.getLingsanYaoqiu();
+    const yaoqiuItems = yaoqiu?.选中CAD要求 || [];
+    setCadData(data, yaoqiuItems);
+    const names = this.result.零散.map((v) => v.data.name);
+    data.name = getNameWithSuffix(names, data.name, "_", 1);
     this.result.零散.push({data, info: {houtaiId: item.data.id, zhankai: [], calcZhankai: []}});
     this._updateInputInfos();
     await timeout(0);
@@ -1073,7 +1067,8 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
         }
       }
     }
-    const result = await openCadEditorDialog(this.dialog, {data: {data, collection, isLocal, center: true}});
+    const gongshis = this.data?.gongshis;
+    const result = await openCadEditorDialog(this.dialog, {data: {data, collection, isLocal, center: true, gongshis}});
     if (result?.isSaved) {
       await this.allFetch();
     }
@@ -1101,6 +1096,8 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
 
   filterLingsanItems() {
     const needle = this.searchLingsanValue;
+    this.lingsanTypesHideEmpty = !!needle;
+    const counts: ObjectOf<number> = {};
     for (const type in this.lingsanCads) {
       let count = 0;
       for (const item of this.lingsanCads[type] || []) {
@@ -1109,28 +1106,206 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
           count++;
         }
       }
-      const info = this.lingsanCadInfos.find((v) => v.type === type);
-      if (info) {
-        info.hidden = count < 1;
-      } else {
-        this.lingsanCadInfos.push({type, hidden: count < 1});
-      }
+      counts[type] = count;
     }
+    let currNode: TypesMapNode | undefined;
+    let firstVisibleNode: TypesMapNode | undefined;
+    const setCount = (node: TypesMapNode) => {
+      let count = 0;
+      if (node.children.length > 0) {
+        for (const child of node.children) {
+          setCount(child);
+          count += child.cadCount || 0;
+        }
+      } else if (node.name in counts) {
+        count = counts[node.name];
+      }
+      node.cadCount = count;
+      if (this.lingsanTypesHideEmpty) {
+        node.hidden = count < 1;
+      } else {
+        node.hidden = false;
+      }
+      if (node.name === this.lingsanCadType) {
+        currNode = node;
+      }
+      if (!firstVisibleNode && !node.hidden) {
+        firstVisibleNode = node;
+      }
+    };
+    const nodes = this.lingsanTypesDataSource.data.slice();
+    for (const node of nodes) {
+      setCount(node);
+    }
+    this.lingsanTypesDataSource.data = nodes;
     session.save(this.searchLingsanValueKey, needle);
+    if (currNode && !currNode.hidden) {
+      this.setLingsanCadType(currNode.name);
+    } else if (firstVisibleNode) {
+      this.setLingsanCadType(firstVisibleNode.name);
+    }
+  }
+  filterLingsanTypes() {
+    const needle = this.searchLingsanType;
+    const search = (nodes: TypesMapNode[]) => {
+      for (const node of nodes) {
+        if (node.children.length > 0) {
+          search(node.children);
+          node.hidden2 = node.children.every((v) => v.hidden2);
+        } else {
+          node.hidden2 = !queryStringList(needle, [node.name, node.label || ""]);
+        }
+      }
+    };
+    search(this.lingsanTypesDataSource.data);
   }
 
   returnZero() {
     return 0;
   }
 
-  async setlingsanCadType(type: string) {
+  async setLingsanCadType(type: string) {
     this.lingsanCadType = type;
     await timeout(0);
-    const index = this.lingsanCadInfos.findIndex((v) => v.type === type);
-    const button = this.typesButtons?.get(index);
-    if (button && getElementVisiblePercentage(button.nativeElement) < 1) {
-      this.lingsanTypesScrollbar?.scrollToElement(button);
+    const treeEl = this.lingsanTypesTreeEl?.nativeElement;
+    const getPath = (nodes: TypesMapNode[], path: TypesMapNode[] = []): TypesMapNode[] => {
+      for (const node of nodes) {
+        if (node.name === type) {
+          return [...path, node];
+        }
+        if (node.children.length > 0) {
+          const path2 = getPath(node.children, [...path, node]);
+          if (path2.length > path.length + 1) {
+            return path2;
+          }
+        }
+      }
+      return path;
+    };
+    const path = getPath(this.lingsanTypesDataSource.data);
+    for (const [i, node] of path.entries()) {
+      this.lingsanTypesTreeControl.expand(node);
+      if (i === path.length - 1) {
+        const nodeEl = treeEl?.querySelector(`[data-id="${node.id}"]`);
+        if (nodeEl instanceof HTMLElement && getElementVisiblePercentage(nodeEl) < 1) {
+          this.lingsanTypesScrollbar?.scrollToElement(nodeEl);
+        }
+      }
     }
+  }
+  async getLingsanCadTypeItem(data?: {mingzi: string; paixu?: number; [x: string]: any}, table?: LingsanTypesData["tables"][number]) {
+    if (!data) {
+      data = {mingzi: ""};
+    }
+    const form: InputInfo[] = [
+      {type: "string", label: "名字", model: {data, key: "mingzi"}, validators: Validators.required},
+      {type: "number", label: "排序", model: {data, key: "paixu"}}
+    ];
+    if (table?.column?.guanlianTable) {
+      const {field, ch, guanlianTable} = table.column;
+      const optionsRaw = (await this.http.getOptions({name: guanlianTable}))?.data || [];
+      const options = convertOptions(optionsRaw);
+      const ids: number[] = data[field].split("*").map(Number);
+      const names = ids.map((id) => optionsRaw.find((v) => v.vid === id)?.name || "");
+      form.push({
+        type: "select",
+        label: ch,
+        options,
+        multiple: true,
+        optionsDialog: {
+          useLocalOptions: true,
+          noImage: true,
+          openInNewTab: true,
+          onChange: (val) => {
+            data[field] = val.options.map((v) => v.vid).join("*");
+          }
+        },
+        value: names
+      });
+    }
+    const result = await this.message.form(form);
+    if (result) {
+      return data;
+    }
+    return null;
+  }
+  isVirtualNode(node: TypesMapNode) {
+    return node.id <= 0;
+  }
+  async isVirtualNode2(node: TypesMapNode) {
+    if (this.isVirtualNode(node)) {
+      await this.message.error(`【${node.name}】是自动生成的，不能进行操作`);
+      return true;
+    }
+    return false;
+  }
+  async addLingsanCadType(node?: TypesMapNode) {
+    if (node && (await this.isVirtualNode2(node))) {
+      return;
+    }
+    const level = node ? node.level : 0;
+    const table = this.lingsanTypesTables[level];
+    const table2 = node ? this.lingsanTypesTables[level + 1] : table;
+    if (!table2) {
+      await this.message.error(`没有对应层级的信息，必须先手动关联一个【${level + 2}】级分类`);
+      return;
+    }
+    const data = await this.getLingsanCadTypeItem();
+    if (!data) {
+      return;
+    }
+    const record = await this.http.tableInsert({table: table2.name, data});
+    if (node && record && table.column) {
+      const ids = node.children.map((v) => v.id);
+      ids.push(record.vid);
+      await this.http.tableUpdate({table: table.name, data: {vid: node.id, [table.column.field]: ids.join("*")}});
+    }
+    this.step3Refresh(true, false);
+  }
+  async editLingsanCadType(node: TypesMapNode) {
+    if (await this.isVirtualNode2(node)) {
+      return;
+    }
+    const table = this.lingsanTypesTables[node.level];
+    if (!table) {
+      await this.message.error(`没有对应层级的信息`);
+      return;
+    }
+    const fields = ["vid", "mingzi"];
+    if (table.column) {
+      fields.push(table.column.field);
+    }
+    const records = await this.http.queryMySql({table: table.name, filter: {where: {vid: node.id}}, fields});
+    const data0 = records[0];
+    const data = await this.getLingsanCadTypeItem(data0, table);
+    if (!data) {
+      return;
+    }
+    await this.http.tableUpdate({table: table.name, data: {vid: node.id, ...data}});
+    this.step3Refresh(true, false);
+  }
+  async removeLingsanCadType(node: TypesMapNode) {
+    if (await this.isVirtualNode2(node)) {
+      return;
+    }
+    if (node.children.length > 0) {
+      await this.message.error(`【${node.name}】下面有子节点，不能删除`);
+      return;
+    }
+    if (!(await this.message.confirm(`是否确定删除【${node.name}】?`))) {
+      return;
+    }
+    const table = this.lingsanTypesTables[node.level];
+    if (!table) {
+      await this.message.error(`没有对应层级的信息`);
+      return;
+    }
+    await this.http.tableDelete({table: table.name, vids: [node.id]});
+    this.step3Refresh(true, false);
+  }
+  toggleLingsanTypesHideEmpty() {
+    this.lingsanTypesHideEmpty = !this.lingsanTypesHideEmpty;
+    this.filterLingsanItems();
   }
 
   private _setInfoBancai(info: ZixuanpeijianInfo, bancai: BancaiList) {
@@ -1308,66 +1483,6 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
     openExportPage(this.status, {search: {_id: {$in: ids}}, lurushuju: true});
   }
 
-  editFenlei() {
-    if (this.isEditingFenlei) {
-      this.isEditingFenlei$.next(false);
-    } else {
-      this.isEditingFenlei$.next(true);
-      const items = this.result.零散;
-      this.result.零散 = [];
-      this.isEditingFenlei$
-        .pipe(
-          filter((v) => !v),
-          take(1)
-        )
-        .subscribe((isEditingFenlei) => {
-          if (!isEditingFenlei) {
-            this.result.零散 = items;
-          }
-        });
-    }
-  }
-
-  async sortFenlei() {
-    const fenleis = this.lingsanCadInfos.map((v) => v.type);
-    const fenleis2 = await this.message.prompt({type: "list", label: "分类排序", value: [...fenleis]});
-    if (fenleis2 && !isEqual(fenleis, fenleis2)) {
-      const result = await this.http.getData<string[]>("ngcad/setLingsanSortedTypes", {sortedTypes: fenleis2});
-      if (result) {
-        this.lingsanSortedTypes = result;
-        await this.sortLingsanCadInfos();
-      }
-    }
-  }
-
-  async setCadsFenlei() {
-    if (this.result.零散.length < 1) {
-      await this.message.error("没有数据");
-      return;
-    }
-    const type = await this.message.prompt({
-      type: "string",
-      label: "转移到分类（可以输入新的分类）",
-      options: this.lingsanCadInfos.map((v) => v.type),
-      validators: Validators.required
-    });
-    let shouldRefresh = false;
-    if (type) {
-      for (const item of this.result.零散) {
-        if (item.data.type !== type) {
-          const success = await this.http.mongodbUpdate("cad", {_id: item.info.houtaiId, 分类: type});
-          if (success) {
-            shouldRefresh = true;
-          }
-        }
-      }
-      this.result.零散 = [];
-    }
-    if (shouldRefresh) {
-      this.step3Refresh();
-    }
-  }
-
   async copyLingsanCad(component: CadItemComponent<LingsanCadItemInfo>) {
     const {index} = component.customInfo;
     const item = this.lingsanCads[this.lingsanCadType]?.[index];
@@ -1383,7 +1498,8 @@ export class ZixuanpeijianComponent extends ContextMenu() implements OnInit {
       const {cads} = await this.http.getCad({collection, ids});
       const data = cads[0];
       if (data) {
-        await openCadEditorDialog(this.dialog, {data: {data, collection, center: true}});
+        const gongshis = this.data?.gongshis;
+        await openCadEditorDialog(this.dialog, {data: {data, collection, center: true, gongshis}});
       }
     }
     this.step3Refresh();

@@ -1,9 +1,9 @@
 <header>
   <h2>页面不存在!</h2>
 </header>
-@if (data.path) {
+@if (data()?.path; as path) {
   <div>
     你可能想去:
-    <button mat-stroked-button style="word-break: break-all" (click)="redirect()">{{ data.path }}</button>
+    <button mat-stroked-button style="word-break: break-all" (click)="redirect()">{{ path }}</button>
   </div>
 }

@@ -15,14 +15,16 @@
           </div> -->
         }
       </div>
-      <app-msbj-rects [rectInfos]="msbjInfo?.peizhishuju?.['模块节点']" (selectRect)="setCurrRectInfo($event)"></app-msbj-rects>
+      <app-msbj-rects [rectInfos]="msbjInfo()?.peizhishuju?.['模块节点']" (selectRect)="currRectInfo.set($event)"></app-msbj-rects>
     </div>
-    <div class="flex-110" (click)="setCurrRectInfo(null)">
-      <div class="title center">{{ msbjInfo?.name }}</div>
+    <div class="flex-110" (click)="currRectInfo.set(null)">
+      <div class="title center">{{ msbjInfo()?.name }}</div>
     </div>
   </div>
   <div class="fenlei-container flex-column flex-110" cdkDropListGroup>
-    <app-input [info]="nameInputInfo"></app-input>
+    @for (info of inputInfos(); track $index) {
+      <app-input [info]="info"></app-input>
+    }
     <div class="daxiaoguanxi flex-column">
       <div class="btn-group">
         <div class="title">模块大小关系</div>
@@ -31,7 +33,7 @@
     </div>
     <ng-scrollbar>
       <div class="cads flex-row">
-        @for (cad of cads; track cad) {
+        @for (cad of cads(); track $index) {
           <div class="cad flex-column">
             <div class="title center">{{ cad.data.name }}</div>
             <app-cad-image [id]="cad.data.id" [data]="cad.data" (click)="openCad(cad.data)"></app-cad-image>

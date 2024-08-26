@@ -2,7 +2,7 @@ import {Component, ElementRef, HostBinding, OnInit} from "@angular/core";
 import {MatButtonModule} from "@angular/material/button";
 import {MatDividerModule} from "@angular/material/divider";
 import {ActivatedRoute} from "@angular/router";
-import {setGlobal} from "@app/app.common";
+import {getValueString, setGlobal} from "@app/app.common";
 import {environment} from "@env";
 import {ObjectOf, timeout} from "@lucilor/utils";
 import {CadDataService} from "@modules/http/services/cad-data.service";
@@ -132,6 +132,7 @@ export class PrintTableComponent implements OnInit {
         if (!value2.value) {
           value2.value = Array(++表头列i).fill(" ").join("");
         }
+        const value3 = getValueString(value2.value);
         表头列.push({
           type: "string",
           field: value2.label,
@@ -140,8 +141,8 @@ export class PrintTableComponent implements OnInit {
         });
         表头列.push({
           type: "string",
-          field: value2.value,
-          name: value2.value,
+          field: value3,
+          name: value3,
           style: {...headerStyle, flex: `1 1 calc(${value2.width[0]} - ${value2.width[1]})`}
         });
       }
@@ -178,7 +179,7 @@ export class PrintTableComponent implements OnInit {
           const field = "铣孔";
           try {
             xikongData = JSON.parse(item[field]);
-          } catch (e) {
+          } catch {
             const content = `${field}=${JSON.stringify(item[field])}`;
             this.message.error({title: "数据格式错误", content});
           }
@@ -189,6 +190,7 @@ export class PrintTableComponent implements OnInit {
           this.xikongTableWidth = 10 + Object.values(xikongColWidths).reduce((a, b) => a + b, 0);
           this.xikongTableInfo = {
             noCheckBox: true,
+            filterable: {searchColumns: ["加工孔名字"]},
             columns: [
               {type: "number", field: "序号", width: `${xikongColWidths.序号}px`},
               {type: "string", field: "加工面", width: `${xikongColWidths.加工面}px`},

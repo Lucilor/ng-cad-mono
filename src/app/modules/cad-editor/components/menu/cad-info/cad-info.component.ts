@@ -7,13 +7,14 @@ import {MatFormFieldModule} from "@angular/material/form-field";
 import {MatIconModule} from "@angular/material/icon";
 import {MatInputModule} from "@angular/material/input";
 import {MatSelectModule} from "@angular/material/select";
-import {激光开料标记线类型} from "@app/cad/utils";
+import {exportCadDataRemoveLengthTextCount, 激光开料标记线类型} from "@app/cad/utils";
 import {CadPoints} from "@app/services/app-status.types";
 import {editCadZhankai} from "@components/dialogs/cad-zhankai/cad-zhankai.component";
 import {openKlkwpzDialog} from "@components/dialogs/klkwpz-dialog/klkwpz-dialog.component";
 import {
   CadBaseLine,
   CadData,
+  CadEntities,
   CadEntity,
   CadEventCallBack,
   CadJointPoint,
@@ -29,7 +30,7 @@ import {InputInfo} from "@modules/input/components/input.types";
 import {MessageService} from "@modules/message/services/message.service";
 import {AppStatusService} from "@services/app-status.service";
 import {CadStatusIntersection, CadStatusSelectBaseline, CadStatusSelectJointpoint} from "@services/cad-status";
-import {isEqual} from "lodash";
+import {debounce, isEqual} from "lodash";
 import {InputComponent} from "../../../../input/components/input.component";
 import {getCadInfoInputs} from "./cad-info.utils";
 
@@ -41,12 +42,12 @@ import {getCadInfoInputs} from "./cad-info.utils";
   imports: [
     FormsModule,
     forwardRef(() => InputComponent),
-    MatFormFieldModule,
-    MatInputModule,
     MatButtonModule,
+    MatFormFieldModule,
     MatIconModule,
-    MatSelectModule,
-    MatOptionModule
+    MatInputModule,
+    MatOptionModule,
+    MatSelectModule
   ]
 })
 export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnDestroy {
@@ -66,6 +67,7 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
   infoGroup1: InputInfo[];
   infoGroup2: InputInfo[];
   infoGroup3: InputInfo[];
+  intersectionInputs: Partial<Record<IntersectionKey, InputInfo[][]>> = {};
   bjxTypes = 激光开料标记线类型;
   bjxIntersectionKey = "激光开料标记线";
   emptyBjxItem: NonNullable<CadData["info"]["激光开料标记线"]>[0] = {type: "短直线", ids: []};
@@ -90,6 +92,7 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
         "变形方式",
         "板材纹理方向",
         "激光开料是否翻转",
+        "激光开料打标",
         "开料排版方式",
         "默认开料板材",
         "默认开料材料",
@@ -218,6 +221,7 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
               }
             }
           }
+          this.updateIntersectionInputs();
         } else if (key === this.bjxIntersectionKey) {
           if (!data.info.激光开料标记线) {
             data.info.激光开料标记线 = [];
@@ -238,9 +242,12 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
         }
       }
     });
+    this.subscribe(this.status.openCad$, () => {
+      this.updateIntersectionInputs();
+    });
     const cad = this.status.cad;
     cad.on("entityclick", this._onEntityClick);
-    cad.on("moveentities", this._updateCadPoints);
+    cad.on("moveentities", this._onEntityMove);
     cad.on("zoom", this._updateCadPoints);
   }
 
@@ -248,7 +255,7 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
     super.ngOnDestroy();
     const cad = this.status.cad;
     cad.off("entityclick", this._onEntityClick);
-    cad.off("moveentities", this._updateCadPoints);
+    cad.off("moveentities", this._onEntityMove);
     cad.off("zoom", this._updateCadPoints);
   }
 
@@ -272,7 +279,17 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
       }
     }
   };
-
+  private _checkMtext = debounce((entities: CadEntities) => {
+    const cad = this.status.cad;
+    const count = exportCadDataRemoveLengthTextCount;
+    if (cad.data.entities.length > count && entities.mtext.some((e) => e.info.isLengthText)) {
+      this.message.snack(`CAD实体数量大于${count}，线长位置不会保存`);
+    }
+  }, 500).bind(this);
+  private _onEntityMove: CadEventCallBack<"moveentities"> = (entities) => {
+    this._checkMtext(entities);
+    this._updateCadPoints();
+  };
   private _updateCadPoints = () => {
     const cadStatus = this.status.cadStatus;
     const data = this.data;
@@ -294,7 +311,6 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
       this.status.cadPoints$.next(points);
     }
   };
-
   private _setActiveCadPoint(point: Partial<CadPoints[0]>, points: CadPoints) {
     points.forEach((p) => (p.active = false));
     for (const p of points) {
@@ -313,7 +329,6 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
     }
     return "primary";
   }
-
   getJointPointItemColor(i: number) {
     const cadStatus = this.status.cadStatus;
     if (cadStatus instanceof CadStatusSelectJointpoint && i === cadStatus.index) {
@@ -321,11 +336,9 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
     }
     return "primary";
   }
-
   addBaseLine(data: CadData, index: number) {
     data.baseLines.splice(index + 1, 0, new CadBaseLine());
   }
-
   async removeBaseLine(data: CadData, index: number) {
     if (await this.message.confirm("是否确定删除？")) {
       const arr = data.baseLines;
@@ -336,15 +349,12 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
       }
     }
   }
-
   selectBaseLine(i: number) {
     this.status.toggleCadStatus(new CadStatusSelectBaseline(i));
   }
-
   addJointPoint(data: CadData, index: number) {
     data.jointPoints.splice(index + 1, 0, new CadJointPoint());
   }
-
   async removeJointPoint(data: CadData, index: number) {
     if (await this.message.confirm("是否确定删除？")) {
       const arr = data.jointPoints;
@@ -355,9 +365,61 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
       }
     }
   }
-
   selectJointPoint(i: number) {
     this.status.toggleCadStatus(new CadStatusSelectJointpoint(i));
+  }
+
+  updateIntersectionInputs() {
+    const inputs: typeof this.intersectionInputs = {};
+    const data = this.data;
+    for (const key of intersectionKeys) {
+      const arr = this.data[key];
+      inputs[key] = [];
+      for (const [i, v] of arr.entries()) {
+        const arr2: InputInfo[] = [
+          {
+            type: "string",
+            label: "",
+            value: v.length ? "已指定" : "未指定",
+            readonly: true,
+            suffixIcons: [
+              {name: "linear_scale", isDefault: true, color: this.getPointColor(i, key), onClick: () => this.selectPoint(i, key)},
+              {name: "add_circle", color: "primary", onClick: () => this.addIntersectionValue(key, i + 1)},
+              {name: "remove_circle", color: "primary", onClick: () => this.removeIntersectionValue(key, i)}
+            ],
+            style: {flex: "2 2 0", width: 0}
+          }
+        ];
+        if (key === "zhidingweizhipaokeng") {
+          if (!Array.isArray(data.info.刨坑深度)) {
+            data.info.刨坑深度 = [];
+          }
+          if (typeof data.info.刨坑深度[i] !== "string") {
+            data.info.刨坑深度[i] = "";
+          }
+          arr2.push({
+            type: "string",
+            label: "刨坑深度",
+            model: {data: data.info.刨坑深度, key: i},
+            options: ["默认"],
+            validators: () => {
+              const val = data.info.刨坑深度[i];
+              if (val === "默认") {
+                return null;
+              }
+              const num = Number(val);
+              if (isNaN(num) || num < 0) {
+                return {请输入不小于0的数字: true};
+              }
+              return null;
+            },
+            style: {flex: "1 1 0", width: 0}
+          });
+        }
+        inputs[key].push(arr2);
+      }
+    }
+    this.intersectionInputs = inputs;
   }
 
   offset(value: string) {
@@ -419,6 +481,7 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
   selectPoint(i: number, key: IntersectionKey) {
     this.cadStatusIntersectionInfo = key;
     this.status.toggleCadStatus(new CadStatusIntersection(key, i));
+    this.updateIntersectionInputs();
   }
 
   selectBjxPoint(i: number) {
@@ -450,5 +513,25 @@ export class CadInfoComponent extends Subscribed(Utils()) implements OnInit, OnD
     if (result) {
       data.info.开料孔位配置 = result;
     }
+  }
+
+  addIntersectionValue(key: IntersectionKey, i?: number) {
+    const data = this.data;
+    this.arrayAdd(data[key], [], i);
+    if (key === "zhidingweizhipaokeng") {
+      if (!Array.isArray(data.info.刨坑深度)) {
+        data.info.刨坑深度 = [];
+      }
+      this.arrayAdd(data.info.刨坑深度, "", i);
+    }
+    this.updateIntersectionInputs();
+  }
+  removeIntersectionValue(key: IntersectionKey, i: number) {
+    const data = this.data;
+    this.arrayRemove(data[key], i);
+    if (key === "zhidingweizhipaokeng") {
+      this.arrayRemove(data.info.刨坑深度, i);
+    }
+    this.updateIntersectionInputs();
   }
 }

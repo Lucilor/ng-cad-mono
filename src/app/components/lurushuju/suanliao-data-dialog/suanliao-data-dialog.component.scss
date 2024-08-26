@@ -4,6 +4,12 @@ app-suanliaogongshi {
 
 .cads {
   flex-wrap: wrap;
+
+  ::ng-deep {
+    .name-error .name button:nth-child(1) {
+      color: red;
+    }
+  }
 }
 
 app-suanliao-tables {

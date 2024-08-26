@@ -16,11 +16,12 @@ import {
   ViewChild,
   ViewChildren
 } from "@angular/core";
+import {ValidationErrors} from "@angular/forms";
 import {MatButtonModule} from "@angular/material/button";
 import {MatCheckboxModule} from "@angular/material/checkbox";
 import {MatDialog} from "@angular/material/dialog";
 import {MatIconModule} from "@angular/material/icon";
-import {getValueString} from "@app/app.common";
+import {getArray, getValueString} from "@app/app.common";
 import {CadPreviewParams, getCadPreview} from "@app/cad/cad-preview";
 import {Cad数据要求, Cad数据要求Item} from "@app/cad/cad-shujuyaoqiu";
 import {CadCollection} from "@app/cad/collections";
@@ -32,7 +33,7 @@ import {CadImageComponent} from "@components/cad-image/cad-image.component";
 import {DataInfoChnageEvent} from "@components/cad-image/cad-image.types";
 import {openCadEditorDialog} from "@components/dialogs/cad-editor-dialog/cad-editor-dialog.component";
 import {CadData, CadDimensionLinear, CadLineLike, CadMtext, CadViewer, CadViewerConfig, CadZhankai} from "@lucilor/cad-viewer";
-import {keysOf, ObjectOf, selectFiles, timeout} from "@lucilor/utils";
+import {ObjectOf, selectFiles, timeout} from "@lucilor/utils";
 import {Subscribed} from "@mixins/subscribed.mixin";
 import {getCadInfoInputs2} from "@modules/cad-editor/components/menu/cad-info/cad-info.utils";
 import {CadDataService} from "@modules/http/services/cad-data.service";
@@ -47,6 +48,7 @@ import csstype from "csstype";
 import {isEmpty} from "lodash";
 import {openFentiCadDialog} from "../fenti-cad-dialog/fenti-cad-dialog.component";
 import {FentiCadDialogInput} from "../fenti-cad-dialog/fenti-cad-dialog.types";
+import {算料公式} from "../xinghao-data";
 import {CadItemButton, CadItemSelectable, typeOptions} from "./cad-item.types";
 
 @Component({
@@ -82,17 +84,18 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
   @Input() buttons2: CadItemButton<T>[] = [];
   @Input({required: true}) customInfo!: T;
   @Input({required: true}) yaoqiu: Cad数据要求 | undefined;
+  @Input({required: true}) gongshis: 算料公式[] | null | undefined;
   @Input() fentiDialogInput?: FentiCadDialogInput;
   @Input() mubanExtraData: Partial<CadData> = {};
   @Input() openCadOptions?: OpenCadOptions;
   @Input() showMuban?: boolean;
-  @Input() isOnline?: {collection?: CadCollection; isFetched?: boolean; afterFetch: (component: CadItemComponent<T>) => void};
+  @Input() isOnline?: {collection?: CadCollection; isFetched?: boolean; afterFetch?: (component: CadItemComponent<T>) => void};
   @Input() selectable?: CadItemSelectable<T>;
   @Input() events?: {
     clickAll?: (component: CadItemComponent<T>, event: MouseEvent) => void;
     clickBlank?: (component: CadItemComponent<T>, event: MouseEvent) => void;
   };
-  @Input() validators?: {zhankai?: boolean};
+  @Input() validators?: {zhankai?: boolean; name?: (data: CadData) => ValidationErrors | null};
   @Output() afterEditCad = new EventEmitter<void>();
 
   @ViewChild("cadContainer") cadContainer?: ElementRef<HTMLDivElement>;
@@ -106,6 +109,7 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
   mubanData?: CadData;
   mubanInputs: InputInfo[][] = [];
   errorMsgs: ObjectOf<string> = {};
+  isOnlineFetched = false;
 
   constructor(
     private message: MessageService,
@@ -211,7 +215,7 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
       } else {
         Object.assign(this.cad, data);
       }
-      isOnline.afterFetch(this);
+      isOnline.afterFetch?.(this);
     }
   }
 
@@ -221,12 +225,16 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
       return;
     }
     await this.onlineFetch();
-    const cadData = cad instanceof CadData ? cad : new CadData(cad.json);
+    const cadData = cad instanceof CadData ? cad.clone() : new CadData(cad.json);
     const result = await openCadEditorDialog(this.dialog, {
       data: {
         data: cadData,
         center: true,
         isLocal: !isOnline,
+        gongshis: this.gongshis,
+        validator: (data) => {
+          return {...this.validateZhankai(data), ...this.validateName(data)};
+        },
         ...this.openCadOptions
       }
     });
@@ -242,6 +250,7 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
       }
       await this.initCadViewer();
       this.afterEditCad.emit();
+      this.validate();
     }
   }
 
@@ -252,19 +261,21 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
     }
     await this.onlineFetch();
     let data: CadData;
-    const ignoreKeys = ["entities"];
     if (cad instanceof CadData) {
       data = cad.clone();
     } else {
-      const dataRaw: ObjectOf<any> = {};
-      for (const key in cad.json) {
-        if (!ignoreKeys.includes(key)) {
-          dataRaw[key] = cad.json[key];
-        }
-      }
-      data = new CadData(dataRaw);
+      data = new CadData(cad.json);
     }
-    const form = getCadInfoInputs2(yaoqiu?.CAD弹窗修改属性 || [], data, this.dialog, this.status, true);
+    const items = yaoqiu?.CAD弹窗修改属性 || [];
+    const item2 = yaoqiu?.选中CAD要求 || [];
+    const form = getCadInfoInputs2(items, item2, data, this.dialog, this.status, true, this.gongshis);
+    const nameInput = form.find((v) => v.label === "名字");
+    if (nameInput) {
+      const {name} = this.validators || {};
+      if (name) {
+        nameInput.validators = [...getArray(nameInput.validators), () => name(data)];
+      }
+    }
     let title = "编辑CAD";
     const name = data.name;
     if (name) {
@@ -276,29 +287,16 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
         data.zhankai[0].name = data.name;
       }
       if (cad instanceof CadData) {
-        for (const {cadKey} of yaoqiu?.CAD弹窗修改属性 || []) {
-          if (cadKey) {
-            (cad as any)[cadKey] = data[cadKey];
-          }
-        }
+        Object.assign(cad, data);
       } else {
-        const cad2 = getHoutaiCad(data);
-        for (const key of keysOf(cad2)) {
-          if (key === "json") {
-            for (const key2 in cad2.json) {
-              if (!ignoreKeys.includes(key2)) {
-                cad.json[key2] = cad2.json[key2];
-              }
-            }
-          } else {
-            cad[key] = cad2[key] as any;
-          }
-        }
+        Object.assign(cad, getHoutaiCad(data));
       }
       if (isOnline) {
         await this.http.setCad({collection: isOnline.collection || "cad", cadData: data, force: true}, true);
       }
+      await this.initCadViewer();
       this.afterEditCad.emit();
+      this.validate();
     }
   }
 
@@ -353,8 +351,11 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
       this.mubanData = undefined;
       return undefined;
     }
-    const resultData = await this.http.getCad({collection: "kailiaocadmuban", id: mubanId}, {spinner: false});
+    const resultData = await this.http.getCad({collection: "kailiaocadmuban", id: mubanId}, {silent: true});
     const mubanData = resultData?.cads[0] as CadData | undefined;
+    if (!mubanData) {
+      this.message.error(`【${this.cadName}】的模板不存在`);
+    }
     this.mubanData = mubanData;
     if (mubanData) {
       generateLineTexts2(mubanData);
@@ -379,6 +380,7 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
         center: true,
         collection: "kailiaocadmuban",
         extraData: mubanExtraData,
+        gongshis: this.gongshis,
         ...this.openCadOptions
       }
     });
@@ -460,7 +462,7 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
         entity = entity.parent;
       }
       if (entity instanceof CadLineLike) {
-        const result = await openCadLineForm(collection, this.status, this.message, cadViewer, entity);
+        const result = await openCadLineForm(collection, this.status, this.message, cadViewer, entity, this.gongshis);
         if (result) {
           afterDblClickForm(data);
         }
@@ -489,7 +491,15 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
     if (!cad || !cadContainer) {
       return;
     }
-    await this.onlineFetch(!showCadViewer);
+    if (showCadViewer) {
+      await this.onlineFetch();
+    } else {
+      if (cad instanceof CadData) {
+        cad.info.incomplete = true;
+      } else {
+        cad.json.info = {...cad.json.info, incomplete: true};
+      }
+    }
     const data = cad instanceof CadData ? cad.clone() : new CadData(cad.json);
     this.cadData = data;
     generateLineTexts2(data);
@@ -503,7 +513,7 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
         if (cad instanceof CadData) {
           Object.assign(cad, data);
         } else {
-          const exportData = exportCadData(data, true);
+          const exportData = exportCadData(data);
           for (const key of ["entities", "info"] as const) {
             cad.json[key] = exportData[key];
           }
@@ -622,21 +632,45 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
     await openFentiCadDialog(this.dialog, {data: fentiDialogInput});
   }
 
+  validateZhankai(data: CadData): ValidationErrors | null {
+    const {validators} = this;
+    const zhankai = data.zhankai[0];
+    if (validators?.zhankai) {
+      if (!zhankai?.zhankaigao) {
+        return {[`【${data.name}】展开高不能为空，请检查红色文字并补充数据`]: true};
+      }
+    }
+    return null;
+  }
+  validateName(data: CadData): ValidationErrors | null {
+    const {validators} = this;
+    if (validators?.name) {
+      const errors = validators.name(data);
+      if (!isEmpty(errors)) {
+        return {[`【${data.name}】名字有错：${Object.keys(errors).join("，")}`]: true};
+      }
+    }
+    return null;
+  }
   validate() {
     const inputs = this.inputComponents?.toArray() || [];
     const errors: string[] = [];
     this.errorMsgs = {};
-    const {cadName, validators} = this;
+    const {cadName} = this;
     const name = `【${cadName}】`;
     if (inputs.some((v) => !isEmpty(v.validateValue()))) {
       errors.push(`${name}输入数据有误`);
     }
-    if (validators?.zhankai) {
-      const {zhankai} = this;
-      if (!zhankai?.zhankaigao) {
-        const err = `${name}展开高不能为空`;
-        errors.push(err);
-        this.errorMsgs.展开信息 = err;
+    if (this.cadData) {
+      const zhankaiError = Object.keys(this.validateZhankai(this.cadData) || {}).join("，");
+      if (zhankaiError) {
+        errors.push(zhankaiError);
+        this.errorMsgs.展开信息 = zhankaiError;
+      }
+      const nameError = Object.keys(this.validateName(this.cadData) || {}).join("，");
+      if (nameError) {
+        errors.push(nameError);
+        this.errorMsgs.名字 = nameError;
       }
     }
     return errors;
@@ -693,6 +727,7 @@ export class CadItemComponent<T = undefined> extends Subscribed() implements OnC
     if (!(await this.message.confirm("是否将所有线的线长数字如果是隐藏的就显示，如果是显示的就隐藏？"))) {
       return;
     }
+    await this.onlineFetch();
     const cad = this.cad;
     const toggle = async (data: CadData) => {
       data.entities.forEach((e) => {

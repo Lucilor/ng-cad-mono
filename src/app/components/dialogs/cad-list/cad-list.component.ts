@@ -1,5 +1,5 @@
 import {KeyValuePipe, NgTemplateOutlet} from "@angular/common";
-import {AfterViewInit, Component, forwardRef, HostBinding, Inject, ViewChild} from "@angular/core";
+import {AfterViewInit, Component, forwardRef, HostBinding, Inject, ViewChild, viewChildren} from "@angular/core";
 import {FormsModule} from "@angular/forms";
 import {MatButtonModule} from "@angular/material/button";
 import {MatCheckboxModule} from "@angular/material/checkbox";
@@ -13,7 +13,7 @@ import {MatPaginator, MatPaginatorModule, PageEvent} from "@angular/material/pag
 import {MatSelectModule} from "@angular/material/select";
 import {MatSlideToggleChange, MatSlideToggleModule} from "@angular/material/slide-toggle";
 import {imgCadEmpty} from "@app/app.common";
-import {setCadData} from "@app/cad/cad-shujuyaoqiu";
+import {setCadData, validateCad} from "@app/cad/cad-shujuyaoqiu";
 import {CadItemComponent} from "@app/components/lurushuju/cad-item/cad-item.component";
 import {CadItemButton} from "@app/components/lurushuju/cad-item/cad-item.types";
 import {getCadInfoInputs2} from "@app/modules/cad-editor/components/menu/cad-info/cad-info.utils";
@@ -23,7 +23,7 @@ import {openImportPage} from "@app/views/import/import.utils";
 import {CadData} from "@lucilor/cad-viewer";
 import {isBetween, isNumber, ObjectOf, queryStringList, timeout} from "@lucilor/utils";
 import {CadDataService} from "@modules/http/services/cad-data.service";
-import {GetCadParams} from "@modules/http/services/cad-data.service.types";
+import {GetCadParams, HoutaiCad} from "@modules/http/services/cad-data.service.types";
 import {HttpOptions} from "@modules/http/services/http.service.types";
 import {MessageService} from "@modules/message/services/message.service";
 import {AppStatusService} from "@services/app-status.service";
@@ -86,6 +86,8 @@ export class CadListComponent implements AfterViewInit {
   downloadApi = this.http.getUrl("ngcad/downloadFile");
   multiDeleting = false;
   @ViewChild("paginator", {read: MatPaginator}) paginator?: MatPaginator;
+
+  cadItems = viewChildren<CadItemComponent>("cadItem");
 
   constructor(
     public dialogRef: MatDialogRef<CadListComponent, CadListOutput>,
@@ -177,9 +179,11 @@ export class CadListComponent implements AfterViewInit {
         this.data.yaoqiu = this.status.getCad数据要求("配件库");
       }
       const keys: (keyof CadData)[] = ["id", "name", "options", "conditions", "type", "type2"];
-      for (const {cadKey} of this.data.yaoqiu?.CAD弹窗修改属性 || []) {
+      for (const {cadKey, key} of this.data.yaoqiu?.CAD弹窗修改属性 || []) {
         if (cadKey && !keys.includes(cadKey)) {
           keys.push(cadKey);
+        } else if (key === "展开信息") {
+          keys.push("zhankai");
         }
       }
       params.fields = keys.map((v) => `json.${v}`);
@@ -295,15 +299,61 @@ export class CadListComponent implements AfterViewInit {
       return;
     }
     const {checkedItems: ids, data} = this;
-    const {collection, raw} = data;
+    const {collection, raw, vars} = data;
+    const yaoqiuItems = data.yaoqiu?.选中CAD要求 || [];
+    let cads: (CadData | HoutaiCad)[] = [];
     if (ids.length > 0) {
       if (raw) {
         const result = await this.http.getCadRaw({ids, collection});
-        this.dialogRef.close((result?.data || []) as any);
+        cads = result?.data || [];
       } else {
         const result = await this.http.getCad({ids, collection});
-        this.dialogRef.close(result.cads);
+        cads = result.cads;
       }
+      for (const cad of cads) {
+        if (cad instanceof CadData) {
+          setCadData(cad, yaoqiuItems, vars);
+        } else {
+          const cad2 = new CadData(cad.json);
+          setCadData(cad2, yaoqiuItems, vars);
+          Object.assign(cad, getHoutaiCad(cad2));
+        }
+      }
+      const getInvalidCad = () => {
+        const result: {cad: CadData; i: number}[] = [];
+        for (const [i, v] of cads.entries()) {
+          const cad = v instanceof CadData ? v : new CadData(v.json);
+          if (!validateCad(cad, yaoqiuItems)) {
+            result.push({cad, i});
+          }
+        }
+        return result;
+      };
+      const toEdit = getInvalidCad();
+      if (toEdit.length > 0) {
+        for (const {cad, i} of toEdit) {
+          const yaoqiuItems2 = data.yaoqiu?.CAD弹窗修改属性 || [];
+          const form = getCadInfoInputs2(yaoqiuItems2, yaoqiuItems, cad, this.dialog, this.status, true, []);
+          let title = "编辑CAD";
+          const name = cad.name;
+          if (name) {
+            title += `【${name}】`;
+          }
+          const result = await this.message.form(form, {title});
+          if (result) {
+            const cad2 = cads[i];
+            if (cad2 instanceof CadData) {
+              Object.assign(cad2, cad);
+            } else {
+              Object.assign(cad2, getHoutaiCad(cad));
+            }
+          }
+        }
+        if (getInvalidCad().length > 0) {
+          return;
+        }
+      }
+      this.dialogRef.close(cads as any);
     } else {
       this.dialogRef.close([]);
     }
@@ -343,11 +393,12 @@ export class CadListComponent implements AfterViewInit {
   }
 
   async addCad() {
-    const {addCadData, yaoqiu} = this.data;
+    const {addCadData, yaoqiu, gongshis} = this.data;
     const cadData = new CadData(addCadData);
     const yaoqiuItems = yaoqiu?.新建CAD要求 || [];
+    const yaoqiuItems2 = yaoqiu?.选中CAD要求 || [];
     setCadData(cadData, yaoqiuItems);
-    const form = getCadInfoInputs2(yaoqiuItems, cadData, this.dialog, this.status, true);
+    const form = getCadInfoInputs2(yaoqiuItems, yaoqiuItems2, cadData, this.dialog, this.status, true, gongshis);
     const result = await this.message.form(form);
     if (!result) {
       return;
@@ -361,7 +412,7 @@ export class CadListComponent implements AfterViewInit {
         const {cads} = await this.http.getCad({collection, id});
         const data = cads[0];
         if (data) {
-          await openCadEditorDialog(this.dialog, {data: {data, collection, center: true}});
+          await openCadEditorDialog(this.dialog, {data: {data, collection, center: true, gongshis}});
         }
       }
       this.search();
@@ -381,7 +432,8 @@ export class CadListComponent implements AfterViewInit {
         const {cads} = await this.http.getCad({collection, ids});
         const data = cads[0];
         if (data) {
-          await openCadEditorDialog(this.dialog, {data: {data, collection, center: true}});
+          const gongshis = this.data.gongshis;
+          await openCadEditorDialog(this.dialog, {data: {data, collection, center: true, gongshis}});
         }
       }
       this.search();

@@ -228,7 +228,7 @@
       <mat-select name="nextZhewan" [value]="getLineText('nextZhewan')" (selectionChange)="setLineText($event, 'nextZhewan')">
         <mat-option value="自动">自动</mat-option>
         <mat-option value="无">无</mat-option>
-        @for (v of zhewan | async; track v) {
+        @for (v of zhewan | async; track $index) {
           <mat-option [value]="v + 'mm'">{{ v }}mm</mat-option>
         }
       </mat-select>
@@ -240,7 +240,7 @@
       <mat-select name="nextZhewan" [value]="getLineText('betweenZhewan')" (selectionChange)="setLineText($event, 'betweenZhewan')">
         <mat-option value="自动">自动</mat-option>
         <mat-option value="无">无</mat-option>
-        @for (v of zhewan | async; track v) {
+        @for (v of zhewan | async; track $index) {
           <mat-option [value]="v + 'mm'">{{ v }}mm</mat-option>
         }
       </mat-select>

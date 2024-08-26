@@ -4,7 +4,7 @@ import {imgCadEmpty, XiaodaohangStructure} from "@app/app.common";
 import {CadCollection} from "@app/cad/collections";
 import {exportCadData} from "@app/cad/utils";
 import {CadData} from "@lucilor/cad-viewer";
-import {dataURLtoBlob, downloadByUrl, DownloadOptions, keysOf, ObjectOf} from "@lucilor/utils";
+import {dataURLtoBlob, downloadByUrl, DownloadOptions, isTypeOf, keysOf, ObjectOf} from "@lucilor/utils";
 import {
   BancaiCad,
   BancaiList,
@@ -82,7 +82,7 @@ export class CadDataService extends HttpService {
     if (response && response.data) {
       if (response.code === 10) {
         const data = new CadData(response.data.cad);
-        data.info.isOnline = true;
+        delete data.info.imgId;
         result.cads = [data];
       } else {
         const restore = await this._resolveMissingCads(response);
@@ -91,7 +91,7 @@ export class CadDataService extends HttpService {
         } else {
           result.cads = response.data.map((v: any) => {
             const v2 = new CadData(v);
-            v2.info.isOnline = true;
+            delete v2.info.imgId;
             return v2;
           });
           result.total = response.count || 0;
@@ -106,7 +106,7 @@ export class CadDataService extends HttpService {
   }
 
   async setCad(params: SetCadParams, hideLineLength: boolean, options?: HttpOptions): Promise<CadData | null> {
-    const cadData = exportCadData(params.cadData, hideLineLength);
+    const cadData = exportCadData(params.cadData);
     const data = {...params, cadData};
     const response = await this.post<any>("ngcad/setCad", data, options);
     if (response && response.data) {
@@ -170,9 +170,9 @@ export class CadDataService extends HttpService {
   }
 
   async uploadDxf(dxf: File, options?: {skipLineContent?: boolean; rectLineColor?: number}, httpOptions?: HttpOptions) {
-    const response = await this.post<any>("ngcad/uploadDxf", {dxf, options}, httpOptions);
-    if (response) {
-      return new CadData(response.data);
+    const data = await this.getData<any>("ngcad/uploadDxf", {dxf, options}, httpOptions);
+    if (data) {
+      return new CadData(data);
     }
     return null;
   }
@@ -233,8 +233,8 @@ export class CadDataService extends HttpService {
     }>("order/order/getBancais", {table, codes});
   }
 
-  async getChangelog(page?: number, pageSize?: number, options?: HttpOptions) {
-    const result = await this.getData<Changelog>("ngcad/getChangelog", {page, pageSize}, options);
+  async getChangelog(params?: {page?: number; pageSize?: number; branch?: string}, options?: HttpOptions) {
+    const result = await this.getData<Changelog>("ngcad/getChangelog", params, options);
     return result || [];
   }
 
@@ -244,6 +244,14 @@ export class CadDataService extends HttpService {
 
   async queryMongodb<T extends MongodbDataBase>(params: QueryMongodbParams, options?: HttpOptions) {
     const data = await this.getData<T[]>("ngcad/queryMongodb", params, options);
+    for (const item of data || []) {
+      if (isTypeOf(item, "object")) {
+        const info = (item as any).json?.info;
+        if (isTypeOf(info, "object")) {
+          delete info.imgId;
+        }
+      }
+    }
     return data || [];
   }
 
@@ -273,11 +281,13 @@ export class CadDataService extends HttpService {
     }
     return url;
   }
-
   async setCadImg(id: string, dataURL: string, options?: HttpOptions) {
     const blob = dataURLtoBlob(dataURL);
     const file = new File([blob], `${id}.png`);
     await this.post("ngcad/setCadImg", {id, file}, options);
+  }
+  async clearCadImgs() {
+    await this.post("ngcad/clearCadImgs");
   }
 
   async getShortUrl(name: string, data?: GetShortUrlParams, options?: HttpOptions) {
@@ -285,7 +295,7 @@ export class CadDataService extends HttpService {
   }
 
   async tableInsert<T extends TableDataBase = TableDataBase>(params: TableInsertParams<T>, options?: HttpOptions) {
-    return await this.getData<void>("jichu/jichu/table_insert", params, options);
+    return await this.getData<T>("jichu/jichu/table_insert", params, options);
   }
 
   async tableUpdate<T extends TableDataBase = TableDataBase>(params: TableUpdateParams<T>, options?: HttpOptions) {
@@ -397,6 +407,9 @@ export class CadDataService extends HttpService {
 
   async getXiaodaohangStructure(xiaodaohang: string, options?: HttpOptions) {
     return await this.getData<XiaodaohangStructure>("ngcad/getXiaodaohangStructure", {xiaodaohang}, options);
+  }
+  async getXiaodaohangStructures(xiaodaohangs: string[], options?: HttpOptions) {
+    return await this.getData<ObjectOf<XiaodaohangStructure>>("ngcad/getXiaodaohangStructures", {xiaodaohangs}, options);
   }
 
   async getMongoId(options?: HttpOptions) {

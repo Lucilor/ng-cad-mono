@@ -20,5 +20,5 @@
     }
     <button mat-raised-button color="primary" (click)="exportCads('导出所有')">导出所有</button>
   </div>
-  <app-progress-bar [progressBar]="progressBar" [status]="progressBarStatus" [msg]="msg"></app-progress-bar>
+  <app-progress-bar [progress]="progressBar.progress" [status]="progressBarStatus" [msg]="msg"></app-progress-bar>
 </div>

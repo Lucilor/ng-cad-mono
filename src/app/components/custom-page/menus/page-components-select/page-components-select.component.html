@@ -1,0 +1,8 @@
+<div class="toolbar center">
+  @for (info of infos; track $index) {
+    <div class="item link" [matTooltip]="info.value.description" [matTooltipShowDelay]="500" (click)="addComponent(info.key)">
+      <app-image [src]="info.value.previewImg"></app-image>
+      <div class="name">{{ info.value.name }}</div>
+    </div>
+  }
+</div>

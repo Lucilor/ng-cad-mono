@@ -40,7 +40,7 @@
     @for (info of form; track $index) {
       <app-input [info]="info"></app-input>
     }
-    <mat-tab-group class="menjiao-data" (selectedTabChange)="onMenjiaoCadTabChange($event)">
+    <mat-tab-group class="menjiao-data" [(selectedIndex)]="menjiaoCadTabIndex" (selectedTabChange)="onMenjiaoCadTabChange($event)">
       @for (key1 of menjiaoCadTypes; track $index) {
         <mat-tab [label]="getMenjiaoCadTabLabel(key1)">
           @if (key1Infos[key1]) {
@@ -77,6 +77,11 @@
                       <div>示意图CAD</div>
                       <app-input [info]="shiyituSearchInputInfo[key1]"></app-input>
                     </div>
+                    @if ((data.xinghaozhuanyongCadCount || 0) > 0) {
+                      <div class="toolbar">
+                        <div class="text" style="color: blue">【型号专用CAD】做了【算料单示意图】，这里不可以再选择数据</div>
+                      </div>
+                    }
                     <div class="list">
                       @if (formData[key1]["示意图CAD"]["算料单示意图"].length > 0) {
                         @for (item of formData[key1]["示意图CAD"]["算料单示意图"]; track i; let i = $index) {
@@ -85,6 +90,7 @@
                             [buttons]="shiyituCadItemButtons"
                             [customInfo]="{key1, index: $index}"
                             [yaoqiu]="getCadshujuyaoqiu('算料单示意图')"
+                            [gongshis]="formData[key1]['算料公式']"
                             [openCadOptions]="getOpenCadOptions(key1)"
                             [cadWidth]="cadWidth"
                             [cadHeight]="cadHeight"
@@ -136,6 +142,7 @@
       [buttons2]="cadItemButtons2"
       [customInfo]="{key1, key2, key3}"
       [yaoqiu]="getCadshujuyaoqiu(key3)"
+      [gongshis]="formData[key1]['算料公式']"
       [fentiDialogInput]="getFentiDialogInput(key1, key2, key3)"
       [openCadOptions]="getOpenCadOptions(key1)"
       [cadWidth]="cadWidth"
@@ -145,7 +152,11 @@
   } @else {
     <div class="empty-cad item link" (click)="selectCad0({key1, key2, key3})">
       <div class="name">{{ cadNameMap[key3] || key3 }}</div>
-      <div class="box border" [style]="{width: cadWidth + 'px', height: cadHeight + 'px'}"></div>
+      <div class="box border" [style]="{width: cadWidth + 'px', height: cadHeight + 'px'}">
+        @if (key1Infos[key1].missingCads.includes(key3)) {
+          <span class="error">请选择</span>
+        }
+      </div>
     </div>
   }
 </ng-template>

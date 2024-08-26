@@ -1,4 +1,5 @@
-import {getOrderBarcode, getPdfInfo, replaceRemoteHost} from "@app/app.common";
+import {getOrderBarcode, replaceRemoteHost} from "@app/app.common";
+import {getPdfInfo, getPrintInfo} from "@app/utils/print";
 import {
   CadCircle,
   CadData,
@@ -7,6 +8,7 @@ import {
   CadEntities,
   CadEntity,
   CadImage,
+  CadLeader,
   CadLine,
   CadLineLike,
   CadMtext,
@@ -16,19 +18,7 @@ import {
   FontStyle,
   setLinesLength
 } from "@lucilor/cad-viewer";
-import {
-  getDPI,
-  getImageDataUrl,
-  isBetween,
-  isNearZero,
-  isTypeOf,
-  loadImage,
-  Matrix,
-  ObjectOf,
-  Point,
-  Rectangle,
-  timeout
-} from "@lucilor/utils";
+import {getImageDataUrl, isBetween, isNearZero, isTypeOf, loadImage, Matrix, ObjectOf, Point, Rectangle, timeout} from "@lucilor/utils";
 import {cloneDeep, intersection} from "lodash";
 import {createPdf} from "pdfmake/build/pdfmake";
 import QRCode from "qrcode";
@@ -186,7 +176,7 @@ const setImageUrl = async (cadImage: CadImage, url: string) => {
       cadImage.url = getImageDataUrl(image);
       cadImage.sourceSize = new Point(image.width, image.height);
       imgMap[url2] = cadImage.url;
-    } catch (error) {
+    } catch {
       imgMap[url2] = "";
     }
   }
@@ -561,7 +551,7 @@ export const configCadDataForPrint = async (
     } else if (e instanceof CadMtext) {
       configMText(e);
     }
-    if (colorNumber === 0x808080 || e.layer === "不显示") {
+    if (colorNumber === 0x808080 || ["开料额外信息", "不显示"].includes(e.layer)) {
       e.visible = false;
     } else if (e.layer === "分体") {
       if (e instanceof CadCircle) {
@@ -702,16 +692,26 @@ const getUnfoldCadViewers = async (
       }
     } else {
       const qrcodeText = offsetStrs.join(";");
-      await QRCode.toCanvas(qrcodeEl, qrcodeText, {width: qrcodeWidth, margin: 0});
-      const img = new CadImage();
-      img.objectFit = "contain";
-      img.anchor.set(0.5, 1);
-      img.targetSize = new Point(qrcodeEl.width - imgPadding[1] - imgPadding[3], qrcodeEl.height - imgPadding[0] - imgPadding[2]);
-      img.url = qrcodeEl.toDataURL();
-      img.position.set(boxRect.x, y);
-      unfoldCad.entities.add(img);
-      await unfoldCadViewer.render(img);
-      y += img.boundingRect.height + imgPadding[0];
+      if (qrcodeText) {
+        let qrcodeSuccess = true;
+        try {
+          await QRCode.toCanvas(qrcodeEl, qrcodeText, {width: qrcodeWidth, margin: 0});
+        } catch (error) {
+          console.warn("生成二维码出错", error);
+          qrcodeSuccess = false;
+        }
+        if (qrcodeSuccess) {
+          const img = new CadImage();
+          img.objectFit = "contain";
+          img.anchor.set(0.5, 1);
+          img.targetSize = new Point(qrcodeEl.width - imgPadding[1] - imgPadding[3], qrcodeEl.height - imgPadding[0] - imgPadding[2]);
+          img.url = qrcodeEl.toDataURL();
+          img.position.set(boxRect.x, y);
+          unfoldCad.entities.add(img);
+          await unfoldCadViewer.render(img);
+          y += img.boundingRect.height + imgPadding[0];
+        }
+      }
     }
 
     const zhankaiText = getCadCalcZhankaiText(cad, calcZhankai, materialResult, bancai, params.projectConfig.getRaw(), projectName);
@@ -746,6 +746,26 @@ const getUnfoldCadViewers = async (
     const dy = imgRect.y - cadRect.y;
     const scale = Math.min(1, imgRect.width / cadRect.width, imgRect.height / cadRect.height);
     cad.transform({translate: [dx, dy], scale, origin: [cadRect.x, cadRect.y]}, true);
+
+    const startLines = [];
+    cad.entities.forEach((e) => {
+      if (e instanceof CadLineLike && e.info.startLine) {
+        startLines.push(e);
+        const leader = new CadLeader();
+        leader.setColor("red");
+        const to = e.start.clone().add(-1, 1);
+        const from = to.clone().add(-10, 10);
+        leader.vertices = [to, from];
+        unfoldCad.entities.add(leader);
+        const text = new CadMtext();
+        text.insert.copy(from);
+        text.setColor("red");
+        text.text = "刨坑起点";
+        text.fontStyle.size = 8;
+        text.anchor.set(0.5, 1);
+        unfoldCad.entities.add(text);
+      }
+    });
   }
   document.body.removeChild(barcodeEl);
 
@@ -843,31 +863,11 @@ const getBomTableImgs = async (bomTable: BomTable, config: CadViewerConfig, size
   return imgs;
 };
 
-/**
- * A4: (210 × 297)mm²
- *    =(8.26 × 11.69)in² (1in = 25.4mm)
- * 	  =(794 × 1123)px² (96dpi)
- */
-export const getA4PrintInfo = () => {
-  let [dpiX, dpiY] = getDPI();
-  if (!(dpiX > 0) || !(dpiY > 0)) {
-    console.warn("Unable to get screen dpi.Assuming dpi = 96.");
-    dpiX = dpiY = 96;
-  }
-  const factor = 0.75;
-  const width = (210 / 25.4) * dpiX * factor;
-  const height = (297 / 25.4) * dpiY * factor;
-  const scaleX = 300 / dpiX / factor;
-  const scaleY = 300 / dpiY / factor;
-  const scale = Math.sqrt(scaleX * scaleY);
-  return {width, height, scaleX, scaleY, scale, factor};
-};
-
 export const printCads = async (params: PrintCadsParams) => {
   const cads = params.cads.map((v) => v.clone());
   const config = params.config || {};
   const extra = params.extra || {};
-  const {width, height, scaleX, scaleY, scale} = getA4PrintInfo();
+  const {width, height, scaleX, scaleY, scale} = getPrintInfo(210, 297);
   const errors: string[] = [];
 
   const pdfPadding: number[] = [];
@@ -1095,7 +1095,7 @@ export const printCads = async (params: PrintCadsParams) => {
 };
 
 const draw型材物料明细 = async (cad: CadViewer, data: CadData, 型材物料明细: 型材物料明细 | undefined) => {
-  if (!型材物料明细) {
+  if (!型材物料明细 || !型材物料明细.items) {
     return;
   }
   const lines = findRectLines(data, "型材物料明细", true);
@@ -1118,13 +1118,20 @@ const draw型材物料明细 = async (cad: CadViewer, data: CadData, 型材物�
   }
   for (const item of items1) {
     const keys: (keyof 型材物料明细Item)[] = ["铝型材", "型材颜色"];
-    const itemsPrev = itemsGroup.find((v) => v.find((v2) => keys.every((k) => v2[k] === item[k])));
+    const itemsPrev = itemsGroup.find((v) => {
+      if (!v.find((v2) => keys.every((k) => v2[k] === item[k]))) {
+        return false;
+      }
+      const target = v.find((v2) => v2.是横料 === item.是横料);
+      return !target || target.型材长度 === item.型材长度;
+    });
     if (itemsPrev) {
       itemsPrev.push(item);
     } else {
       itemsGroup.push([item]);
     }
   }
+  itemsGroup.sort((a, b) => a[0].铝型材.localeCompare(b[0].铝型材));
 
   const lineHeight = 119;
   const rowWidth = lines.rect.width;
@@ -1174,28 +1181,43 @@ const draw型材物料明细 = async (cad: CadViewer, data: CadData, 型材物�
     addText(widths[2], "竖料", [x + widths[2] / 2, y - lineHeight * 0.75], [0.5, 0.5], {size: 30});
     x += widths[2];
 
-    const 横料Count = items.filter((v) => v.是横料 === "是").reduce((a, b) => a + b.要求数量, 0);
+    const get切角Str = (items2: typeof items) => {
+      const 双45Count = items2.filter((v) => v.左切角 === "45" && v.右切角 === "45").length;
+      if (双45Count > 0) {
+        return "双45";
+      }
+      const 单45Count = items2.filter((v) => v.左切角 === "45" || v.右切角 === "45").length - 双45Count;
+      if (单45Count > 0) {
+        return "单45";
+      }
+      const 双90Count = items2.filter((v) => v.左切角 === "90" && v.右切角 === "90").length;
+      if (双90Count > 0) {
+        return "双90";
+      }
+      return "";
+    };
+
+    const 横料 = items.filter((v) => v.是横料 === "是");
+    const 横料Count = 横料.reduce((a, b) => a + b.要求数量, 0);
     if (横料Count > 0) {
-      const text = `${items[0].型材长度}=${横料Count}`;
+      const text = `${横料[0].型材长度}=${横料Count}`;
       addText(widths[3], text, [x + widths[3] / 2, y - lineHeight * 0.25], [0.5, 0.5], {size: 30});
     }
-    const 竖料Count = items.filter((v) => v.是横料 === "否").reduce((a, b) => a + b.要求数量, 0);
+    const 竖料 = items.filter((v) => v.是横料 === "否");
+    const 竖料Count = 竖料.reduce((a, b) => a + b.要求数量, 0);
     if (竖料Count > 0) {
-      const text = `${items[0].型材长度}=${竖料Count}`;
+      const text = `${竖料[0].型材长度}=${竖料Count}`;
       addText(widths[3], text, [x + widths[3] / 2, y - lineHeight * 0.75], [0.5, 0.5], {size: 30});
     }
     x += widths[3];
 
-    const 双45Count = items.filter((v) => v.左切角 === "45" && v.右切角 === "45").length;
-    const 单45Count = items.filter((v) => v.左切角 === "45" || v.右切角 === "45").length - 双45Count;
-    const 双90Count = items.filter((v) => v.左切角 === "90" && v.右切角 === "90").length;
-    if (双90Count > 0) {
-      addText(widths[4], `双90`, [x + widths[4] / 2, y - lineHeight * 0.25], [0.5, 0.5], {size: 30});
-    } else if (双45Count > 0) {
-      addText(widths[4], `双45`, [x + widths[4] / 2, y - lineHeight * 0.25], [0.5, 0.5], {size: 30});
+    const 横料切角Str = get切角Str(横料);
+    if (横料切角Str) {
+      addText(widths[4], 横料切角Str, [x + widths[4] / 2, y - lineHeight * 0.25], [0.5, 0.5], {size: 30});
     }
-    if (单45Count > 0) {
-      addText(widths[4], `单45`, [x + widths[4] / 2, y - lineHeight * 0.75], [0.5, 0.5], {size: 30});
+    const 竖料切角Str = get切角Str(竖料);
+    if (竖料切角Str) {
+      addText(widths[4], 竖料切角Str, [x + widths[4] / 2, y - lineHeight * 0.75], [0.5, 0.5], {size: 30});
     }
     x += widths[4];
 

@@ -46,10 +46,9 @@ export const getInputInfosFromTableRenderCols = <T>(
         return {
           ...base,
           type: "string",
-          optionKey: col.guanLian,
-          optionInputOnly: true,
-          isSingleOption: col.dbType.includes("int"),
-          optionsUseId: true
+          optionsDialog: {optionKey: col.guanLian, optionsUseId: true},
+          optionRequired: true,
+          optionMultiple: !col.dbType.includes("int")
         };
       default:
         console.warn("Unknown type: ", col.type2);

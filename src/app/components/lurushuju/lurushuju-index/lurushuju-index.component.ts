@@ -8,6 +8,7 @@ import {MatIconModule} from "@angular/material/icon";
 import {MatMenuModule} from "@angular/material/menu";
 import {MatTabChangeEvent, MatTabGroup, MatTabsModule} from "@angular/material/tabs";
 import {MatTooltipModule} from "@angular/material/tooltip";
+import {Router} from "@angular/router";
 import {
   filePathUrl,
   getBooleanStr,
@@ -19,6 +20,7 @@ import {
   setGlobal,
   splitOptions
 } from "@app/app.common";
+import {step3FetchData} from "@app/components/dialogs/zixuanpeijian/zixuanpeijian.utils";
 import {filterHuajian} from "@app/views/mrbcjfz/mrbcjfz.utils";
 import {AboutComponent} from "@components/about/about.component";
 import {openCadListDialog} from "@components/dialogs/cad-list/cad-list.component";
@@ -33,7 +35,7 @@ import {BancaiListData} from "@modules/http/services/cad-data.service.types";
 import {getTableUpdateData} from "@modules/http/services/cad-data.service.utils";
 import {ImageComponent} from "@modules/image/components/image/image.component";
 import {InputComponent} from "@modules/input/components/input.component";
-import {InputInfo, InputInfoOption, InputInfoSelect} from "@modules/input/components/input.types";
+import {InputInfo, InputInfoGroup, InputInfoOption, InputInfoSelect} from "@modules/input/components/input.types";
 import {MessageService} from "@modules/message/services/message.service";
 import {TableComponent} from "@modules/table/components/table/table.component";
 import {RowButtonEvent, ToolbarButtonEvent} from "@modules/table/components/table/table.types";
@@ -44,7 +46,14 @@ import {cloneDeep, debounce, isEqual} from "lodash";
 import {NgScrollbarModule} from "ngx-scrollbar";
 import {openMenjiaoDialog} from "../menjiao-dialog/menjiao-dialog.component";
 import {MenjiaoInput} from "../menjiao-dialog/menjiao-dialog.types";
-import {copySuanliaoData, updateMenjiaoData} from "../menjiao-dialog/menjiao-dialog.utils";
+import {
+  copySuanliaoData,
+  getGroupStyle,
+  getInfoStyle,
+  getMenfengInputs,
+  getMenjiaoOptionInputInfo,
+  updateMenjiaoData
+} from "../menjiao-dialog/menjiao-dialog.utils";
 import {openSelectGongyiDialog} from "../select-gongyi-dialog/select-gongyi-dialog.component";
 import {openTongyongshujuDialog} from "../tongyongshuju-dialog/tongyongshuju-dialog.component";
 import {
@@ -157,6 +166,7 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
   menjiaoName = "";
   suanliaoDataName = "";
   suanliaoTestName = "";
+  xinghaozhuanyongCadCount = 0;
   production = environment.production;
   @ViewChild(MrbcjfzComponent) mrbcjfz?: MrbcjfzComponent;
   @ViewChild(MatTabGroup) tabGroup?: MatTabGroup;
@@ -168,7 +178,8 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     private http: CadDataService,
     private message: MessageService,
     private dialog: MatDialog,
-    private status: AppStatusService
+    private status: AppStatusService,
+    private router: Router
   ) {
     super();
     setGlobal("lrsj", this, true);
@@ -201,10 +212,17 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
   }
 
   get isKailiao() {
-    if (typeof this.xinghao?.是否需要激光开料 === "boolean") {
-      return this.xinghao.是否需要激光开料;
+    const projectKey = "新版本做数据可以做激光开料";
+    const projectKailiao = this.status.projectConfig.getBoolean(projectKey);
+    if (!projectKailiao) {
+      return false;
     }
-    return this.status.projectConfig.getBoolean("新版本做数据可以做激光开料");
+    const xinghao = this.xinghao;
+    if (typeof xinghao?.是否需要激光开料 === "boolean") {
+      return xinghao.是否需要激光开料;
+    } else {
+      return projectKailiao;
+    }
   }
 
   async getXinghaos() {
@@ -244,8 +262,14 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
           }
         }
       }
+      if (typeof iPrev === "number") {
+        this.xinghaoMenchuangs.index = iPrev;
+        const menchuangItem = this.xinghaoMenchuangs.items[iPrev];
+        if (menchuangItem?.gongyis && typeof jPrev === "number") {
+          menchuangItem.gongyis.index = jPrev;
+        }
+      }
       this.filterXinghaos();
-      this.clikcXinghaoGongyi(iPrev ?? 0, jPrev ?? 0);
     }
   }
 
@@ -285,8 +309,12 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
         this.message.snack("搜索不到数据");
       } else if (foundCount === 1) {
         const [i, j] = foundGongyis[0];
-        this.clikcXinghaoGongyi(i, j);
+        this.clikcXinghaoGongyi(i, j, true);
       }
+    } else {
+      const iPrev = this.xinghaoMenchuangs.index;
+      const jPrev = this.xinghaoMenchuangs.items[this.xinghaoMenchuangs.index ?? -1]?.gongyis?.index;
+      this.clikcXinghaoGongyi(iPrev || 0, jPrev || 0, true);
     }
   }
 
@@ -306,7 +334,8 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     if (xinghao) {
       result.mingziOld = result.data.mingzi;
       await this.editXinghaoByResult(result, xinghao);
-      this.getXinghaos();
+      await this.getXinghaos();
+      this.enterXinghao(xinghao);
     }
   }
 
@@ -331,6 +360,7 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     if (!data.gongyi && gongyi) {
       data.gongyi = gongyi.mingzi;
     }
+    const isAdd = !xinghao;
 
     const data2: XinghaoRaw = {
       名字: data.mingzi,
@@ -343,29 +373,12 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     const mingziOld = data.mingzi;
     const names = this.xinghaos.map((xinghao) => xinghao.mingzi);
     let refreshOptions = false;
-    const getOptionInput = (key1: string, key2: string, multiple?: boolean) => {
-      const info: InputInfoSelect = {
-        type: "select",
-        label: key1,
-        multiple,
-        validators: Validators.required,
-        options: this.getOptions(key1),
-        optionsDialog: {
-          optionKey: key1,
-          useLocalOptions: true,
-          openInNewTab: true,
-          onChange: () => {
-            refreshOptions = true;
-          }
-        }
-      };
-      if (multiple && info.optionsDialog) {
-        info.value = splitOptions((data2 as any)[key2]);
-        info.optionsDialog.onChange = (val) => {
-          (data2 as any)[key2] = joinOptions(val.options, "*");
+    const getOptionInput = (key: string, label: string, multiple?: boolean, options?: {hidden?: boolean}) => {
+      const info = this.getOptionInput(data2, key, label, multiple, options);
+      if (info.optionsDialog) {
+        info.optionsDialog.onChange = () => {
+          refreshOptions = true;
         };
-      } else {
-        info.model = {data: data2, key: key2};
       }
       return info;
     };
@@ -406,8 +419,8 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
           }
         }
       },
-      getOptionInput("门窗", "所属门窗", true),
-      getOptionInput("工艺", "所属工艺", true),
+      getOptionInput("门窗", "所属门窗", true, {hidden: isAdd}),
+      getOptionInput("工艺", "所属工艺", true, {hidden: isAdd}),
       getOptionInput("订单流程", "订单流程"),
       {
         type: "select",
@@ -457,14 +470,91 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
   }
 
   async copyXinghao(xinghao: XinghaoData) {
-    const from = xinghao.mingzi;
-    if (!(await this.message.confirm(`确定复制选中${from}吗？`))) {
-      return;
-    }
-    const names = this.xinghaos.map((v) => v.mingzi);
-    const to = getCopyName(names, from);
-    const success = await this.http.getData<boolean>("shuju/api/copyXinghao", {from, to}, {spinner: false});
-    if (success) {
+    const fromName = xinghao.mingzi;
+    const namesAll = this.xinghaos.map((v) => v.mingzi);
+    const data = {num: 1, names: [] as string[], menchuang: xinghao.menchuang, gongyi: xinghao.gongyi};
+    const getNameInputs = () => {
+      const result: InputInfo[] = [];
+      data.names = [];
+      const numPerRow = 5;
+      const w = 100 / numPerRow + "%";
+      for (let i = 0; i < data.num; i++) {
+        const name = getCopyName(namesAll.concat(data.names), fromName);
+        data.names.push(name);
+        result.push({
+          type: "string",
+          label: "",
+          model: {data: data.names, key: i},
+          validators: () => {
+            const val = data.names[i];
+            if (!val) {
+              return {不能为空: true};
+            }
+            if (namesAll.includes(val)) {
+              return {不能重复: true};
+            }
+            if (data.names.some((v, j) => i !== j && v === val)) {
+              return {不能重复: true};
+            }
+            return null;
+          },
+          style: {
+            flex: `0 0 calc(${w} - 20px * ${(numPerRow - 1) / numPerRow})`,
+            width: "0",
+            marginLeft: i % numPerRow === 0 ? "0" : "20px"
+          }
+        });
+      }
+      return result;
+    };
+    const namesGroupInput: InputInfoGroup = {
+      type: "group",
+      label: "",
+      groupStyle: {display: "flex", flexWrap: "wrap"},
+      infos: getNameInputs()
+    };
+    const form: InputInfo<typeof data>[] = [
+      {
+        type: "number",
+        label: "复制数量",
+        model: {data, key: "num"},
+        validators: () => {
+          const num = data.num;
+          const min = 1;
+          const max = 50;
+          if (num < min) {
+            return {[`不能小于${min}`]: true};
+          }
+          if (num > max) {
+            return {[`不能大于${max}`]: true};
+          }
+          return null;
+        },
+        onChange: () => {
+          namesGroupInput.infos = getNameInputs();
+        }
+      },
+      {
+        type: "group",
+        label: "",
+        infos: [
+          this.getOptionInput(data, "门窗", "menchuang", true, {style: getInfoStyle(2)}),
+          this.getOptionInput(data, "工艺", "gongyi", true, {style: getInfoStyle(2)})
+        ],
+        groupStyle: getGroupStyle()
+      },
+      namesGroupInput
+    ];
+    const result = await this.message.form(form, {}, {width: "100%", height: "100%", maxWidth: "900px"});
+    if (result) {
+      if (data.num > 1 && !(await this.message.confirm(`确定复制吗？`))) {
+        return;
+      }
+      await this.http.getData<boolean>(
+        "shuju/api/copyXinghao",
+        {fromName, toNames: data.names, menchuang: data.menchuang, gongyi: data.gongyi},
+        {spinner: false}
+      );
       await this.getXinghaos();
     }
   }
@@ -569,11 +659,12 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
 
   async setStep2() {
     const step = 2;
+    this.xinghaoInputInfos = [];
     if (this.step !== step) {
-      this.xinghaoInputInfos = [];
       return;
     }
-    this.xinghaoInputInfos = [];
+    const step3Data = await step3FetchData(this.http, {getAll: true, useTypePrefix: true, xinghao: this.xinghaoName});
+    this.xinghaozhuanyongCadCount = step3Data?.cads.length || 0;
     await Promise.all([this.getXinghaosIfNotFetched(), this.getXinghaoOptionsAllIfNotFetched()]);
     if (!this.xinghao) {
       await this.getXinghao();
@@ -664,6 +755,30 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
       }
     });
   }
+  getOptionInput(data: any, key1: string, key2: string, multiple?: boolean, others?: Partial<InputInfo>) {
+    const info: InputInfoSelect = {
+      type: "select",
+      label: key1,
+      multiple,
+      validators: Validators.required,
+      options: this.getOptions(key1),
+      optionsDialog: {
+        optionKey: key1,
+        useLocalOptions: true,
+        openInNewTab: true
+      }
+    };
+    if (multiple && info.optionsDialog) {
+      info.value = splitOptions(data[key2]);
+      info.optionsDialog.onChange = (val) => {
+        data[key2] = joinOptions(val.options, "*");
+      };
+    } else {
+      info.model = {data, key: key2};
+    }
+    Object.assign(info, others);
+    return info;
+  }
 
   openTab(name: string) {
     const tabs = this.tabGroup?._tabs.toArray();
@@ -716,11 +831,11 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     const names = this.xinghao.产品分类[产品分类].map((gongyi) => gongyi.名字);
     const 名字 = await this.message.prompt({
       type: "string",
-      label: "新建工艺做法",
+      label: "",
       validators: (control) => {
         const value = control.value;
         if (!value) {
-          return {名字不能为空: true};
+          return {"请输入工艺做法名字，下单时需要选择": true};
         }
         if (names.includes(value)) {
           return {名字已存在: true};
@@ -734,6 +849,7 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     const 型号 = this.xinghao.名字;
     const xinghaoRaw = await this.http.getData<XinghaoRaw>("shuju/api/addGongyi", {名字, 型号, 产品分类});
     await this.updateXinghao(xinghaoRaw?.产品分类);
+    this.enterGongyi(产品分类, 名字);
   }
 
   async removeGongyi(产品分类: string, 名字: string) {
@@ -843,7 +959,7 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     }
   }
 
-  editGongyi2(fenleiName: string, gongyiName: string) {
+  enterGongyi(fenleiName: string, gongyiName: string) {
     this.setStep(3, {xinghaoName: this.xinghaoName, fenleiName, gongyiName});
   }
 
@@ -1140,7 +1256,8 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
         onSubmit,
         isKailiao: this.isKailiao,
         suanliaoDataName,
-        suanliaoTestName
+        suanliaoTestName,
+        xinghaozhuanyongCadCount: this.xinghaozhuanyongCadCount
       }
     });
     this.menjiaoName = "";
@@ -1155,13 +1272,31 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     switch (event.button.event) {
       case "添加":
         {
-          const 名字 = await this.message.prompt({type: "string", label: "新建门铰锁边铰边", validators: Validators.required});
-          if (名字) {
-            const item = get算料数据({名字, 产品分类: this.fenleiName});
-            updateMenjiaoData(item);
-            gongyi.算料数据.push(item);
+          const data = get算料数据();
+          const keys: (keyof 算料数据)[] = ["门铰", "门扇厚度", "锁边", "铰边"];
+          const form: InputInfo[] = [
+            {
+              type: "string",
+              label: "",
+              model: {data, key: "名字"},
+              validators: (control) => {
+                const value = control.value;
+                if (!value) {
+                  return {"请输入【门铰锁边铰边】的名字，下单要选": true};
+                }
+                return null;
+              }
+            },
+            ...keys.map((k) => getMenjiaoOptionInputInfo(data, k, 1, this.menjiaoOptionsAll)),
+            getMenfengInputs(data)
+          ];
+          const result = await this.message.form(form);
+          if (result) {
+            updateMenjiaoData(data);
+            gongyi.算料数据.push(data);
             this.menjiaoTable.data = [...gongyi.算料数据];
             await this.submitGongyi(["算料数据"]);
+            await this.editGongyi3(data, gongyi.算料数据.length - 1);
           }
         }
         break;
@@ -1231,29 +1366,7 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     const {button, item: fromItem, rowIdx} = event;
     switch (button.event) {
       case "编辑":
-        {
-          fromItem.产品分类 = this.fenleiName;
-          await this.getMenjiaoItem(
-            async (result) => {
-              const toItem = result.data;
-              if (toItem && this.gongyi) {
-                if (toItem.默认值) {
-                  for (const [i, item4] of this.gongyi.算料数据.entries()) {
-                    if (i !== rowIdx) {
-                      item4.默认值 = false;
-                    }
-                  }
-                }
-                this.gongyi.算料数据[rowIdx] = toItem;
-                this.menjiaoTable.data = [...this.gongyi.算料数据];
-                await this.submitGongyi(["算料数据"]);
-              }
-            },
-            fromItem,
-            suanliaoDataName,
-            suanliaoTestName
-          );
-        }
+        await this.editGongyi3(fromItem, rowIdx, suanliaoDataName, suanliaoTestName);
         break;
       case "编辑排序":
         {
@@ -1326,6 +1439,29 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
         break;
     }
   }
+  async editGongyi3(data: 算料数据, rowIdx: number, suanliaoDataName?: string, suanliaoTestName?: string) {
+    data.产品分类 = this.fenleiName;
+    await this.getMenjiaoItem(
+      async (result) => {
+        const toItem = result.data;
+        if (toItem && this.gongyi) {
+          if (toItem.默认值) {
+            for (const [i, item4] of this.gongyi.算料数据.entries()) {
+              if (i !== rowIdx) {
+                item4.默认值 = false;
+              }
+            }
+          }
+          this.gongyi.算料数据[rowIdx] = toItem;
+          this.menjiaoTable.data = [...this.gongyi.算料数据];
+          await this.submitGongyi(["算料数据"]);
+        }
+      },
+      data,
+      suanliaoDataName,
+      suanliaoTestName
+    );
+  }
 
   getHuajianIds(menshans: typeof this.menshans) {
     const huajianIds = new Set<number>();
@@ -1341,14 +1477,25 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     return huajianIds;
   }
 
+  private _huajiansCache: ObjectOf<MrbcjfzHuajian[]> = {};
   async updateHuajians() {
     const huajianIds = this.getHuajianIds(this.menshans);
     if (huajianIds.size > 0) {
-      this.huajians = await this.http.queryMySql<MrbcjfzHuajian>({
-        table: "p_huajian",
-        fields: ["vid", "mingzi", "xiaotu", "shihuajian"],
-        filter: {where_in: {vid: Array.from(huajianIds)}}
-      });
+      const ids = Array.from(huajianIds);
+      const cacheKey = ids.join(",");
+      if (this._huajiansCache[cacheKey]) {
+        this.huajians = this._huajiansCache[cacheKey];
+      } else {
+        this.huajians = await this.http.queryMySql<MrbcjfzHuajian>(
+          {
+            table: "p_huajian",
+            fields: ["vid", "mingzi", "xiaotu", "shihuajian"],
+            filter: {where_in: {vid: ids}}
+          },
+          {spinner: false}
+        );
+        this._huajiansCache[cacheKey] = this.huajians;
+      }
     } else {
       this.huajians = [];
     }
@@ -1411,7 +1558,7 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
       stepFixed: true,
       noValidateCads: true,
       readonly: true,
-      lingsanOptions: isXinghao ? {getAll: true, typePrefix: true, xinghao: this.xinghaoName} : {getAll: true}
+      lingsanOptions: isXinghao ? {getAll: true, useTypePrefix: true, xinghao: this.xinghaoName} : {getAll: true}
     };
     await openZixuanpeijianDialog(this.dialog, {data});
   }
@@ -1461,8 +1608,10 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
       return;
     }
     if (this.status.project !== 项目) {
-      session.save(this.infoKey, {...info, changeProject: true});
-      this.status.changeProject(项目);
+      if (await this.message.confirm("页面信息的项目不同，是否切换项目？")) {
+        session.save(this.infoKey, {...info, changeProject: true});
+        this.status.changeProject(项目);
+      }
       return;
     }
     this.dialog.closeAll();
@@ -1549,21 +1698,28 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
   }
 
   async updateBtns() {
-    const toggleforceUpdateCadImgBtnName = () => `强制刷新CAD图片(${getBooleanStr(this.status.forceUpdateCadImg2)})`;
-    const toggleforceUpdateCadImgBtn: (typeof this.btns)[number] = {
-      name: toggleforceUpdateCadImgBtnName(),
-      onClick: () => {
-        this.status.forceUpdateCadImg2 = !this.status.forceUpdateCadImg2;
-        toggleforceUpdateCadImgBtn.name = toggleforceUpdateCadImgBtnName();
-      }
-    };
     this.btns = [
       {name: "返回至型号", onClick: this.backToXinghao.bind(this)},
       {name: "复制页面信息", onClick: this.copyInfo.bind(this)},
       {name: "粘贴页面信息", onClick: this.pasteInfo.bind(this)},
-      toggleforceUpdateCadImgBtn
+      {
+        name: "重新生成所有cad图片",
+        onClick: () => this.status.openInNewTab(["/refresh-cad-imgs"])
+      }
     ];
+    if (!environment.production) {
+      const toggleforceUpdateCadImgBtnName = () => `强制刷新CAD图片(${getBooleanStr(this.status.forceUpdateCadImg2)})`;
+      const toggleforceUpdateCadImgBtn: (typeof this.btns)[number] = {
+        name: toggleforceUpdateCadImgBtnName(),
+        onClick: () => {
+          this.status.forceUpdateCadImg2 = !this.status.forceUpdateCadImg2;
+          toggleforceUpdateCadImgBtn.name = toggleforceUpdateCadImgBtnName();
+        }
+      };
+      this.btns.push(toggleforceUpdateCadImgBtn);
+    }
     await this.status.fetchCad数据要求List();
+    await this.status.fetchInputOptions();
     for (const item of this.status.cad数据要求List) {
       this.btns.push({
         name: item.CAD分类,
@@ -1624,17 +1780,6 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     await this.getXinghaos();
   }
 
-  async openXinghaoMenchaung() {
-    const url = await this.http.getShortUrl("p_menchuang");
-    if (!url) {
-      return;
-    }
-    window.open(url);
-    if (await this.message.newTabConfirm()) {
-      await this.getXinghaos();
-    }
-  }
-
   async getXinghaoGongyi(gongyi?: XinghaoGongyi) {
     const data = gongyi ? cloneDeep({...gongyi, xinghaos: undefined}) : getXinghaoGongyi();
     const form: InputInfo<typeof data>[] = [
@@ -1688,18 +1833,7 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     await this.getXinghaos();
   }
 
-  async openXinghaoGongyi() {
-    const url = await this.http.getShortUrl("p_gongyi");
-    if (!url) {
-      return;
-    }
-    window.open(url);
-    if (await this.message.newTabConfirm()) {
-      await this.getXinghaos();
-    }
-  }
-
-  clikcXinghaoGongyi(i: number, j: number) {
+  clikcXinghaoGongyi(i: number, j: number, refresh?: boolean) {
     const menchuangs = this.xinghaoMenchuangs;
     const iPrev = menchuangs.index;
     menchuangs.index = i;
@@ -1709,7 +1843,7 @@ export class LurushujuIndexComponent extends Subscribed() implements OnInit, Aft
     }
     const jPrev = gongyis.index;
     gongyis.index = j;
-    if (iPrev !== i || jPrev !== j) {
+    if (iPrev !== i || jPrev !== j || refresh) {
       const xinghaos = gongyis.items[j]?.xinghaos;
       this.xinghaos = xinghaos?.items || [];
     }

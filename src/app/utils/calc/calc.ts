@@ -447,7 +447,6 @@ export class Calc {
 
     // 处理需要替换的字符串，含##的表达式
     if (!isEmpty(replace)) {
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         const ok2: ObjectOf<string> = {};
         for (const key in replace) {

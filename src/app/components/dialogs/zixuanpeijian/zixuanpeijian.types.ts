@@ -1,3 +1,5 @@
+import {XiaodaohangColumn} from "@app/app.common";
+import {算料公式} from "@app/components/lurushuju/xinghao-data";
 import {Formulas} from "@app/utils/calc";
 import {KailiaocanshuData} from "@components/klcs/klcs.component";
 import {KlkwpzSource} from "@components/klkwpz/klkwpz";
@@ -65,8 +67,9 @@ export interface ZixuanpeijianInput {
   step1Data?: Step1Data;
   noValidateCads?: boolean;
   readonly?: boolean;
-  lingsanOptions?: {getAll?: boolean; typePrefix?: boolean; xinghao?: string};
+  lingsanOptions?: {getAll?: boolean; useTypePrefix?: boolean; xinghao?: string};
   lingsanCadType?: string;
+  gongshis?: 算料公式[];
 }
 
 export type ZixuanpeijianOutput = Required<ZixuanpeijianData>;
@@ -158,4 +161,21 @@ export interface CalcZxpjResult {
 
 export interface LingsanCadItemInfo {
   index: number;
+}
+
+export interface LingsanTypesData {
+  typesMap: TypesMapNode[];
+  tables: {name: string; column?: XiaodaohangColumn}[];
+}
+
+export interface TypesMapNode {
+  id: number;
+  name: string;
+  level: number;
+  order: number;
+  label?: string;
+  cadCount?: number;
+  hidden?: boolean;
+  hidden2?: boolean;
+  children: TypesMapNode[];
 }

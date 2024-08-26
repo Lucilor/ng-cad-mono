@@ -18,7 +18,7 @@ export const getCadPreviewRaw = async (collection: CadCollection, data: CadData,
     backgroundColor: "rgba(0,0,0,0)",
     hideLineLength: collection === "CADmuban",
     hideLineGongshi: false,
-    lineGongshi: 24,
+    lineGongshi: 8,
     ...params.config
   });
   cad.dom.style.opacity = "0";
@@ -70,7 +70,7 @@ export const getCadPreviewRaw = async (collection: CadCollection, data: CadData,
   return cad;
 };
 
-export interface CadPreviewParams extends CadPreviewRawParams {}
+export type CadPreviewParams = CadPreviewRawParams;
 export const getCadPreview = async (collection: CadCollection, data: CadData, params: CadPreviewParams = {}) => {
   const cad = await getCadPreviewRaw(collection, data, params);
   const url = await cad.toDataURL();

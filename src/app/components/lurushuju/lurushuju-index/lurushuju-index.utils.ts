@@ -69,7 +69,6 @@ export const getMenjiaoTable = (): TableRenderInfo<MenjiaoData> => {
     noCheckBox: true,
     columns: [
       {type: "string", field: "名字", width: "180px", name: "门铰锁边铰边"},
-      {type: "string", field: "产品分类", width: "100px"},
       {type: "string", field: "开启", width: "100px"},
       {type: "string", field: "门铰", width: "100px", getString: (value) => getArrayString(value.门铰, "，")},
       {type: "string", field: "门扇厚度", width: "80px", getString: (value) => getArrayString(value.门扇厚度, "，")},

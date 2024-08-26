@@ -66,6 +66,36 @@
                   "maximumError": "100kb"
                 }
               ]
+            },
+            "beta": {
+              "baseHref": "/static/ng-cad2-beta/",
+              "index": {
+                "input": "src/index.prod.html",
+                "output": "index.html"
+              },
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.beta.ts"
+                }
+              ],
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "6mb",
+                  "maximumError": "10mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb",
+                  "maximumError": "100kb"
+                }
+              ]
             }
           }
         },
@@ -102,7 +132,7 @@
             "main": "src/test.ts",
             "polyfills": ["zone.js", "zone.js/testing"],
             "tsConfig": "tsconfig.spec.json",
-            "karmaConfig": "karma.conf.js",
+            "karmaConfig": "karma.conf.cjs",
             "assets": ["src/favicon.ico", "src/assets"],
             "styles": ["src/styles.scss", "src/mat-theme.scss"],
             "scripts": [],

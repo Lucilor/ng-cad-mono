@@ -1,0 +1,46 @@
+@for (info of inputs(); track $index) {
+  <app-input [info]="info"></app-input>
+}
+<div class="toolbar">
+  <button mat-raised-button color="primary" (click)="calc()">计算</button>
+  <button mat-raised-button color="primary" (click)="import()">导入数据</button>
+  <button mat-raised-button color="primary" (click)="export()">导出数据</button>
+  <button mat-raised-button color="primary" (click)="getOptimizeData()">请求数据</button>
+</div>
+@if (calcResult) {
+  <ng-scrollbar>
+    <div class="calc-result item border">
+      <div class="text">总利用率【{{ calcResult.result["总利用率"] }}】用时【{{ calcResult.duration }}ms】</div>
+      <div class="items">
+        @for (item of calcResult.result["铝型材优化结果"]; track i; let i = $index) {
+          <!-- <mat-divider></mat-divider> -->
+          <div class="xingcai item border">
+            <div class="xingcai-name text">型材【{{ item["型材"] }}】</div>
+            <div class="toolbar">
+              <span>所有型材利用率【{{ item["所有型材利用率"] }}】【{{ item["优化结果"].length }}】根</span>
+              <button mat-icon-button color="primary" (click)="calcResultInfo[i].showDetails = !calcResultInfo[i].showDetails">
+                @if (calcResultInfo[i].showDetails) {
+                  <mat-icon>expand_circle_down</mat-icon>
+                } @else {
+                  <mat-icon>expand_circle_right</mat-icon>
+                }
+              </button>
+            </div>
+            @if (calcResultInfo[i].showDetails) {
+              <div class="items">
+                @for (item2 of item["优化结果"]; track j; let j = $index) {
+                  <div class="item border">
+                    <div class="text">
+                      <span>【{{ j + 1 }}】利用率【{{ item2["单支型材利用率"] }}】【{{ item2["型材类型"] }}】</span>
+                      <span>{{ getLengthsStr(item2) }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </ng-scrollbar>
+}

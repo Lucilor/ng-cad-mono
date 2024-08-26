@@ -72,7 +72,7 @@ export class HttpService {
     let url: URL;
     try {
       url = new URL(path, this.baseURL || location.origin);
-    } catch (error) {
+    } catch {
       return path;
     }
     if (params) {

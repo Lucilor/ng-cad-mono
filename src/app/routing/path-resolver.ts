@@ -11,7 +11,7 @@ export const pathResolver: ResolveFn<PathResolveData> = (route: ActivatedRouteSn
       break;
     }
   }
-  const typoPath = url.slice(0, index);
+  const typoPath = decodeURIComponent(url.slice(0, index));
   const threshold = typoPath.length < 5 ? 3 : 5;
   const dictionary = routesInfo.filter(({path}) => Math.abs(path.length - typoPath.length) < threshold).map((v) => v.path);
 

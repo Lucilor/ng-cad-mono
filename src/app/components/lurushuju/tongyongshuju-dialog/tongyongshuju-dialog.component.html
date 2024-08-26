@@ -13,12 +13,12 @@
           }
           <div class="table-item item-list" [class]="{active: item.active}">
             <div class="name" (click)="clickTableListItem(i)">{{ item.mingzi }}</div>
-            @if (item.xiaodaohang) {
+            <!-- @if (item.xiaodaohang) {
               <button mat-button color="primary" (click)="editTableListItem(i)">编辑</button>
             }
             @if (item.bangzhuwendang) {
               <button mat-button color="primary" (click)="helpTableListItem(i)">帮助</button>
-            }
+            } -->
           </div>
         }
       </div>
@@ -57,25 +57,26 @@
     <app-spinner [id]="cadListLoader"></app-spinner>
     @if (activeCadList && activeItem && isDataHaveCad(tableData[activeItem.index])) {
       <div class="toolbar">
-        <button mat-raised-button color="primary" (click)="addCad()">添加</button>
         <button mat-raised-button color="primary" (click)="addCadFromList()">从配件库选择</button>
       </div>
       <ng-scrollbar>
         <div class="items no-items-per-row">
           @if (activeCadList.data.length < 1) {
             <div class="item">
-              <div class="title error">请添加CAD</div>
+              <div class="title error">请选择CAD</div>
             </div>
           } @else {
             @for (item of activeCadList.data; track i; let i = $index) {
-              <!-- <ng-container *ngTemplateOutlet="cadItem; context: {$implicit: item}"></ng-container> -->
               <app-cad-item
+                [id]="item._id"
                 [cad]="item"
                 [cadWidth]="300"
                 [cadHeight]="150"
                 [buttons]="cadItemButtons"
                 [customInfo]="{index: i}"
                 [yaoqiu]="getShujuyaoqiu(tableData[activeItem.index])"
+                [gongshis]="[]"
+                [isOnline]="{isFetched: true}"
                 (afterEditCad)="editCad(item)"
               ></app-cad-item>
             }

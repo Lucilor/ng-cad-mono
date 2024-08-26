@@ -293,7 +293,6 @@ export const suanliaodanZoomOut = (data: CadData) => {
     }
   }
   data.updateComponents();
-  ``;
 };
 
 export const getCadTotalLength = (data: CadData) => {
@@ -590,7 +589,8 @@ export const getCadCalcZhankaiText = (
   return text;
 };
 
-export const exportCadData = (data: CadData, hideLineLength: boolean) => {
+export const exportCadDataRemoveLengthTextCount = 200 as const;
+export const exportCadData = (data: CadData) => {
   const exportData = data.export();
   const count = data.entities.line.length + data.entities.arc.length;
   for (const type of ["line", "arc"]) {
@@ -608,7 +608,7 @@ export const exportCadData = (data: CadData, hideLineLength: boolean) => {
           if (isGongshiText || isBianhuazhiText) {
             delete mtexts[mtextId];
           } else if (isLengthText) {
-            if (count > 30 && (hideLineLength || e.hideLength)) {
+            if (count > exportCadDataRemoveLengthTextCount) {
               delete mtexts[mtextId];
             } else {
               const keys = ["type", "info", "insert", "lineweight", "anchor"];
@@ -635,8 +635,8 @@ export const openCadDimensionForm = async (
   const dimension2 = dimension.clone();
   const form: InputInfo<typeof dimension>[] = [
     {type: "string", label: "名字", model: {data: dimension2, key: "mingzi"}},
-    {type: "boolean", label: "删除标注", radio: true, value: false},
-    {type: "boolean", label: "隐藏尺寸线", radio: true, value: !!dimension2.style.dimensionLine?.hidden},
+    {type: "boolean", label: "删除标注", appearance: "radio", value: false},
+    {type: "boolean", label: "隐藏尺寸线", appearance: "radio", value: !!dimension2.style.dimensionLine?.hidden},
     {
       type: "select",
       label: "小数处理",

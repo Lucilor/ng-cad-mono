@@ -2,6 +2,7 @@ import {KeyValuePipe} from "@angular/common";
 import {Component, forwardRef, Inject} from "@angular/core";
 import {MatButtonModule} from "@angular/material/button";
 import {MAT_DIALOG_DATA, MatDialogActions, MatDialogRef} from "@angular/material/dialog";
+import {BatchUploadChecker} from "@app/views/import/import.utils";
 import {CadData} from "@lucilor/cad-viewer";
 import {InputInfo} from "@modules/input/components/input.types";
 import {MessageService} from "@modules/message/services/message.service";
@@ -22,6 +23,7 @@ export interface BbzhmkgzComponentData {
 })
 export class BbzhmkgzComponent {
   inputInfo: InputInfo = {type: "string", textarea: {}, label: ""};
+  batchUploadChecker = new BatchUploadChecker();
 
   constructor(
     public dialogRef: MatDialogRef<BbzhmkgzComponent, BbzhmkgzComponentData>,
@@ -38,7 +40,7 @@ export class BbzhmkgzComponent {
   }
 
   submit() {
-    const {errors} = window.parseBaobianzhengmianRules("修改包边正面宽规则:\n" + this.data.value, this.data.vars);
+    const {errors} = this.batchUploadChecker.parseBaobianzhengmianRules("修改包边正面宽规则:\n" + this.data.value, this.data.vars);
     if (errors.length > 0) {
       this.message.alert({content: errors.join("<br>"), title: "包边正面宽规则有误"});
       return;

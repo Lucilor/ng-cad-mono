@@ -30,6 +30,6 @@ export class AboutComponent extends Subscribed() {
   showChangelog() {
     openChangelogDialog(this.dialog, {hasBackdrop: true});
     local.save("changelogTimeStamp", new Date().getTime());
-    this.isChangelogNew = false;
+    this.isNew = false;
   }
 }

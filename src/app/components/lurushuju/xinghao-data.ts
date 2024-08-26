@@ -178,9 +178,7 @@ export interface 输入 {
   排序?: number;
 }
 
-export interface 花件玻璃信息 {
-  // 用对象描述，例如固定不可改包框宽包框高，含默认数及允许范围
-}
+export type 花件玻璃信息 = ObjectOf<any>;
 
 export interface 算料公式 {
   _id: string;

@@ -4,6 +4,7 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  forwardRef,
   HostListener,
   Inject,
   OnDestroy,
@@ -36,7 +37,7 @@ import {validateForm} from "./message.utils";
   imports: [
     A11yModule,
     FormsModule,
-    InputComponent,
+    forwardRef(() => InputComponent),
     MatButtonModule,
     MatDialogActions,
     MatDialogContent,
@@ -148,7 +149,7 @@ export class MessageComponent implements OnInit, AfterViewInit, OnDestroy {
     if (jsonEditorContainer && data.type === "json") {
       this.jsonEditor = new JSONEditor({
         target: jsonEditorContainer.nativeElement,
-        props: {mode: Mode.text, ...data.options}
+        props: {mode: Mode.tree, ...data.options}
       });
       this.jsonEditor.set({json: data.json});
     }
@@ -272,8 +273,9 @@ export class MessageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onKeyUp(event: KeyboardEvent) {
     if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
-      this.formInputs?.forEach((v) => v.validateValue());
-      this.submit();
+      if (this.data.type !== "form") {
+        this.submit();
+      }
     }
   }
 }

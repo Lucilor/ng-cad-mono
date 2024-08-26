@@ -447,7 +447,7 @@ export class SubCadsComponent extends ContextMenu(Subscribed()) implements OnIni
     let obj: any;
     try {
       obj = JSON.parse(json);
-    } catch (e) {
+    } catch {
       this.message.alert("内容不是有效的JSON");
     }
     obj.id = data.id;

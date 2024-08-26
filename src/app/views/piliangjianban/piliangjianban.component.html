@@ -6,7 +6,7 @@
         <mat-panel-description> {{ bancai["规格"][0] }}×{{ bancai["规格"][1] }}={{ bancai["数量"] }} </mat-panel-description>
       </mat-expansion-panel-header>
       <div class="cads">
-        @for (data of bancai.data; track data) {
+        @for (data of bancai.data; track $index) {
           <mat-card class="cad" [style]="{width: cadElWidth}">
             <div class="header">
               <div class="title">{{ data.code }}</div>

@@ -24,7 +24,7 @@
   }
 
   .bancai-attrs {
-    > * {
+    > * > * {
       width: 0;
       box-sizing: border-box;
 
@@ -32,6 +32,10 @@
         padding-right: 5px;
       }
     }
+  }
+
+  .error {
+    margin: 3px 0;
   }
 }
 

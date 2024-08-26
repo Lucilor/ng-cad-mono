@@ -3,6 +3,6 @@
   <button mat-raised-button color="primary" (click)="cloneMtexts()">复制文本</button>
 </div>
 
-@for (info of inputInfos; track info) {
+@for (info of inputInfos; track $index) {
   <app-input [info]="info"></app-input>
 }

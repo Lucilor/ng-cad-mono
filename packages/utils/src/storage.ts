@@ -1,6 +1,6 @@
 import {ObjectOf} from "./types";
 
-class CustomStorage {
+export abstract class CustomStorage {
   private _field: string;
   storage: Storage;
 
@@ -19,7 +19,7 @@ class CustomStorage {
     let data: ObjectOf<any> = {};
     try {
       data = JSON.parse(this.storage.getItem(this._field) || "{}");
-    } catch (error) {}
+    } catch {}
     data[key] = JSON.stringify(value);
     this.storage.setItem(this._field, JSON.stringify(data));
   }
@@ -46,7 +46,7 @@ class CustomStorage {
     let data = null;
     try {
       data = JSON.parse(this.storage.getItem(this._field) || "");
-    } catch (error) {}
+    } catch {}
     if (data && data[key]) {
       delete data[key];
       this.storage.setItem(this._field, JSON.stringify(data));

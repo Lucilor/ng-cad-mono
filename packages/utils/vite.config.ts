@@ -36,9 +36,7 @@ export default defineConfig(({mode}) => {
           },
           rollupOptions: {
             external: (id) => !(isAbsolute(id) || id.startsWith("."))
-          },
-          minify: "esbuild",
-          sourcemap: false
+          }
         }
       };
     case "dist":

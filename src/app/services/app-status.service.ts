@@ -19,7 +19,7 @@ import {
   validateLines
 } from "@app/cad/utils";
 import {ProjectConfig, ProjectConfigRaw} from "@app/utils/project-config";
-import {getXinghaoQuery} from "@components/lurushuju/xinghao-data";
+import {getXinghaoQuery, 算料公式} from "@components/lurushuju/xinghao-data";
 import {environment} from "@env";
 import {
   CadData,
@@ -91,8 +91,6 @@ export class AppStatusService {
   forceUpdateCadImg2 = false;
   updateCadImglLock$ = new BehaviorSubject<number>(0);
   cadImgToUpdate$ = new BehaviorSubject<ObjectOf<{t: number}>>({});
-  cad数据要求List: Cad数据要求[] = [];
-  isCad数据要求ListFetched = false;
 
   constructor(
     private config: AppConfigService,
@@ -137,7 +135,7 @@ export class AppStatusService {
   }
 
   async getUpdateTimeStamp() {
-    const s = await this.http.getData<string>("ngcad/getUpdateTime", {}, {spinner: false});
+    const s = await this.http.getData<string>("ngcad/getUpdateTime", {beta: environment.beta}, {spinner: false});
     let n = Number(s);
     if (typeof n !== "number" || isNaN(n)) {
       n = 0;
@@ -147,6 +145,7 @@ export class AppStatusService {
   }
 
   async setProject(queryParams: Params) {
+    this.checkEnvBeta();
     const {project, action} = queryParams;
     if (project && project !== this.project) {
       this.project = project;
@@ -360,6 +359,8 @@ export class AppStatusService {
       const resData2 = await this.http.getData<HoutaiCad>("shuju/api/getOrSetCad", params);
       resData = resData2 ? new CadData(resData2.json) : null;
     } else {
+      delete data.info.imgId;
+      delete data.info.imgUpdate;
       resData = await http.setCad({collection, cadData: data, force: true}, hideLineLength);
     }
     if (resData) {
@@ -522,16 +523,14 @@ export class AppStatusService {
   }
 
   exportSelected() {
-    const {hideLineLength} = this.config.getConfig();
     const entities = this.cad.selected();
     const data = new CadData();
     data.entities = entities;
-    return exportCadData(data, hideLineLength).entities;
+    return exportCadData(data).entities;
   }
 
   exportCadData() {
-    const {hideLineLength} = this.config.getConfig();
-    return exportCadData(this.cad.data, hideLineLength);
+    return exportCadData(this.cad.data);
   }
 
   getItemSize(item: any, options?: FileSizeOptions) {
@@ -566,10 +565,12 @@ export class AppStatusService {
         opts.queryParamsHandling = "merge";
       }
       const url2 = this.router.createUrlTree(url, opts);
-      location.href = url2.toString();
+      location.href = document.baseURI + url2.toString().slice(1);
     }, 0);
   }
 
+  cad数据要求List: Cad数据要求[] = [];
+  isCad数据要求ListFetched = false;
   async fetchCad数据要求List(forced?: boolean) {
     if (!forced && this.isCad数据要求ListFetched) {
       return;
@@ -578,7 +579,6 @@ export class AppStatusService {
     this.cad数据要求List = cad数据要求Raws.map((v) => new Cad数据要求(v));
     this.isCad数据要求ListFetched = true;
   }
-
   getCad数据要求(name: string) {
     let result = this.cad数据要求List.find((v) => v.CAD分类 === name);
     if (!result) {
@@ -601,5 +601,50 @@ export class AppStatusService {
   }
   isCadImgToUpdate(id: string) {
     return this.cadImgToUpdate$.value[id];
+  }
+
+  checkEnvBeta() {
+    if (!environment.production) {
+      return;
+    }
+    const testMode = this.config.getConfig("testMode");
+    const masterPath = "ng-cad2";
+    const nextPath = "ng-cad2-beta";
+    const masterReg = new RegExp(`/${masterPath}/`);
+    const nextReg = new RegExp(`/${nextPath}/`);
+    const url = location.href;
+    if (masterReg.test(url) && testMode) {
+      location.href = url.replace(masterReg, `/${nextPath}/`);
+    } else if (nextReg.test(url) && !testMode) {
+      location.href = url.replace(nextReg, `/${masterPath}/`);
+    }
+  }
+
+  private _gongshiOptions: string[] | null = null;
+  private _xuanxiangOptions: string[] | null = null;
+  private _isInputOptionsFetched = false;
+  async fetchInputOptions() {
+    if (this._isInputOptionsFetched) {
+      return;
+    }
+    const result = await this.http.getData<ObjectOf<string[]>>("shuju/api/getInputNames", {spinner: false});
+    if (!result || !isTypeOf(result, "object")) {
+      return;
+    }
+    this._gongshiOptions = result.公式;
+    this._xuanxiangOptions = result.选项;
+    this._isInputOptionsFetched = true;
+  }
+  getGongshiOptions(gongshis: 算料公式[] | null | undefined) {
+    const result = new Set<string>(this._gongshiOptions);
+    for (const gongshi of gongshis || []) {
+      for (const key in gongshi.公式 || {}) {
+        result.add(key);
+      }
+    }
+    return Array.from(result);
+  }
+  getXuanxiangOptions() {
+    return this._xuanxiangOptions || [];
   }
 }

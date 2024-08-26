@@ -57,10 +57,20 @@
       @if (shownMenus.includes("entityInfo")) {
         <div class="sub-menu">
           <div style="padding: 10px; font-size: 1.2em">CAD总长: {{ cadLength$ | async }}</div>
-          <mat-slide-toggle [checked]="multiSelect" (change)="toggleMultiSelect()">
-            实体{{ multiSelect ? "多选" : "单选" }}
-          </mat-slide-toggle>
-          <!-- <mat-slide-toggle [checked]="!!entityDraggable" (change)="toggleEntityDraggable()"> 实体拖动 </mat-slide-toggle> -->
+          <div class="btn-group" style="position: relative">
+            <mat-slide-toggle [checked]="multiSelect" (change)="toggleMultiSelect()">
+              实体{{ multiSelect ? "多选" : "单选" }}
+            </mat-slide-toggle>
+            <div class="flex-110"></div>
+            <button mat-icon-button color="primary" (pointerenter)="showMenuSearch()">
+              <mat-icon>search</mat-icon>
+            </button>
+            @if (menuSearchShown) {
+              <div class="menu-search" (pointermove)="onMenuSearchPointerMove($event)">
+                <app-input [info]="menuSearch"></app-input>
+              </div>
+            }
+          </div>
           <mat-tab-group #infoTabs [disablePagination]="true" dynamicHeight (selectedTabChange)="onInfoTabChange($event)">
             <mat-tab label="CAD">
               <ng-scrollbar>

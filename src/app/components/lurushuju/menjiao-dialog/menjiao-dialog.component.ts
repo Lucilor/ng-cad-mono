@@ -6,7 +6,7 @@ import {MAT_DIALOG_DATA, MatDialog, MatDialogRef} from "@angular/material/dialog
 import {MatDividerModule} from "@angular/material/divider";
 import {MatTabChangeEvent, MatTabsModule} from "@angular/material/tabs";
 import {session, setGlobal} from "@app/app.common";
-import {filterCad, setCadData} from "@app/cad/cad-shujuyaoqiu";
+import {filterCad} from "@app/cad/cad-shujuyaoqiu";
 import {convertOptions} from "@app/modules/input/components/input.utils";
 import {AppStatusService} from "@app/services/app-status.service";
 import {openCadListDialog} from "@components/dialogs/cad-list/cad-list.component";
@@ -24,12 +24,11 @@ import {InputComponent} from "@modules/input/components/input.component";
 import {InputInfo, InputInfoSelect} from "@modules/input/components/input.types";
 import {validateForm} from "@modules/message/components/message/message.utils";
 import {MessageService} from "@modules/message/services/message.service";
-import csstype from "csstype";
+import {filterCad as filterCad2} from "@views/mrbcjfz/mrbcjfz.utils";
 import {cloneDeep, debounce, isEmpty} from "lodash";
 import {NgScrollbar, NgScrollbarModule} from "ngx-scrollbar";
 import {CadItemComponent} from "../cad-item/cad-item.component";
 import {CadItemButton} from "../cad-item/cad-item.types";
-import {getOptionInputInfo} from "../lurushuju-index/lurushuju-index.utils";
 import {openSuanliaoDataDialog} from "../suanliao-data-dialog/suanliao-data-dialog.component";
 import {SuanliaoTablesComponent} from "../suanliao-tables/suanliao-tables.component";
 import {
@@ -38,6 +37,7 @@ import {
   menjiaoCadTypes,
   SuanliaoDataParams,
   xiaoguotuKeys,
+  企料CAD,
   企料组合,
   孔位CAD名字对应关系,
   算料数据,
@@ -51,7 +51,10 @@ import {
   autoFillMenjiao,
   copySuanliaoData,
   getCadSearch,
+  getGroupStyle,
+  getInfoStyle,
   getMenjiaoCadInfos,
+  getMenjiaoOptionInputInfo,
   getShiyituCadSearch,
   updateMenjiaoData
 } from "./menjiao-dialog.utils";
@@ -91,6 +94,7 @@ export class MenjiaoDialogComponent implements OnInit {
   key1Infos: ObjectOf<{
     xiaoguotuInputs: InputInfo[];
     error: string;
+    missingCads: string[];
     suanliaoDataParams: SuanliaoDataParams;
     suanliaogongshiInfo: SuanliaogongshiInfo;
     isLoaded: boolean;
@@ -105,7 +109,8 @@ export class MenjiaoDialogComponent implements OnInit {
   form: InputInfo[] = [];
   shiyituSearchInputInfo: ObjectOf<InputInfo> = {};
   hiddenShiyitus: number[] = [];
-  errors = {bcfz: false, others: false};
+  errors = this.getEmptyErrors();
+  menjiaoCadTabIndex = 0;
   @ViewChildren(InputComponent) inputs?: QueryList<InputComponent>;
   @ViewChildren(SuanliaoTablesComponent) suanliaoTablesList?: QueryList<SuanliaoTablesComponent>;
   @ViewChild("inputScrollbar") inputScrollbar?: NgScrollbar;
@@ -166,6 +171,10 @@ export class MenjiaoDialogComponent implements OnInit {
     }
   }
 
+  getEmptyErrors() {
+    return {bcfz: false, others: false, key1: {} as Partial<Record<MenjiaoCadType, string>>};
+  }
+
   async update(useFormData?: boolean) {
     const {data: data0, componentLrsj} = this.data;
     if (!componentLrsj) {
@@ -178,51 +187,9 @@ export class MenjiaoDialogComponent implements OnInit {
     const 产品分类 = data0 ? data0.产品分类 : componentLrsj.fenleiName;
     data.产品分类 = 产品分类;
     updateMenjiaoData(data);
-    const getGroupStyle = (style?: csstype.Properties): csstype.Properties => {
-      return {display: "flex", flexWrap: "wrap", ...style};
-    };
-    const getInfoStyle = (n: number, style?: csstype.Properties): csstype.Properties => {
-      const percent = 100 / n;
-      const margin = 5;
-      return {width: `calc(${percent}% - ${margin * 2}px)`, margin: `${margin}px`, ...style};
-    };
+
     const getOptionInputInfo2 = (data: any, key: string, n: number): InputInfoSelect => {
-      return getOptionInputInfo(componentLrsj.menjiaoOptionsAll, key, (info) => {
-        info.model = {data, key};
-        if (!info.readonly && !info.disabled) {
-          info.validators = Validators.required;
-        }
-        info.onChange = () => {
-          updateMenjiaoData(data);
-        };
-        info.style = getInfoStyle(n);
-        const dialogKeys = ["门铰"];
-        const openInNewTabKeys = ["门扇厚度"];
-        if (dialogKeys.includes(key)) {
-          info.optionsDialog = {
-            noImage: true,
-            defaultValue: {value: data.选项默认值[key] || "", required: true},
-            optionKey: key,
-            useLocalOptions: true,
-            openInNewTab: true,
-            onChange(val) {
-              if (val.defaultValue) {
-                data.选项默认值[key] = val.defaultValue;
-              }
-            }
-          };
-        } else if (openInNewTabKeys.includes(key)) {
-          info.openInNewTab = {
-            optionKey: key,
-            onOptionsChange: (options) => {
-              info.options = convertOptions(options.data);
-            }
-          };
-        }
-        if (key === "锁边") {
-          info.hint = "请使用和实际对应的名字";
-        }
-      });
+      return {...getMenjiaoOptionInputInfo(data, key, n, componentLrsj.menjiaoOptionsAll), style: getInfoStyle(n)};
     };
     const getMenfengInputInfo = (value: (typeof 门缝配置输入)[number]): InputInfo => {
       return {
@@ -368,7 +335,7 @@ export class MenjiaoDialogComponent implements OnInit {
       };
       const inputs = [
         {
-          ...getOptionInputInfo2(data[key1], "双开门扇宽生成方式", 1.5),
+          ...getOptionInputInfo2(data[key1] as any, "双开门扇宽生成方式", 1.5),
           onChange: () => {
             if (锁扇蓝线宽比铰扇蓝线宽大(key1)) {
               setInputHidden(inputs[1], false);
@@ -404,6 +371,7 @@ export class MenjiaoDialogComponent implements OnInit {
       this.key1Infos[key1] = {
         xiaoguotuInputs: [],
         error: "",
+        missingCads: [],
         suanliaoDataParams: {
           选项: {
             型号: componentLrsj.xinghaoName,
@@ -472,11 +440,23 @@ export class MenjiaoDialogComponent implements OnInit {
       }
     } else {
       const {errors} = this;
+      const msgs: string[] = [];
       if (errors.bcfz && !errors.others) {
-        this.message.error("无法保存，输入不完整，请打开板材分组");
+        msgs.push("无法保存，输入不完整，请打开板材分组");
       } else {
-        this.message.error("无法保存，输入不完整，请补充");
+        msgs.push("无法保存，输入不完整，请补充");
       }
+      const key1Keys = keysOf(errors.key1);
+      if (key1Keys.length > 0) {
+        for (const key of key1Keys) {
+          msgs.push(`【${key}】${errors.key1[key]}`);
+        }
+        const index = menjiaoCadTypes.indexOf(key1Keys[0]);
+        if (index >= 0) {
+          this.menjiaoCadTabIndex = index;
+        }
+      }
+      this.message.error(msgs.join("<br>"));
     }
     return false;
   }
@@ -504,6 +484,7 @@ export class MenjiaoDialogComponent implements OnInit {
       return;
     }
     const {search, addCadData} = getCadSearch(data, yaoqiu, key1, key2, key3);
+    const imgIdPrev = data[key1][key2][key3]?.cad?.json?.info?.imgId;
     const result = await openCadListDialog(this.dialog, {
       data: {
         selectMode: "single",
@@ -518,14 +499,21 @@ export class MenjiaoDialogComponent implements OnInit {
     const cad = result?.[0] as unknown as HoutaiCad | undefined;
     if (cad) {
       const name = this.cadNameMap[key3] || key3;
-      const cadData = new CadData(cad.json);
+      const houtaiId = cad._id;
+      const cadData = new CadData(cad.json, true);
       cadData.name = name;
-      setCadData(cadData, yaoqiu.选中CAD要求);
+      if (imgIdPrev) {
+        cadData.info.imgId = imgIdPrev;
+        cadData.info.imgUpdate = true;
+      } else {
+        delete cadData.info.imgId;
+      }
       if (!data[key1][key2][key3]) {
         data[key1][key2][key3] = {};
       }
-      data[key1][key2][key3].cad = getHoutaiCad(cadData);
+      data[key1][key2][key3].cad = getHoutaiCad(cadData, {houtaiId});
       updateMenjiaoData(this.formData);
+      await this.validate();
     }
   }
 
@@ -549,17 +537,17 @@ export class MenjiaoDialogComponent implements OnInit {
   }
 
   async selectShiyituCad(key1: MenjiaoCadType | CadItemComponent<MenjiaoShiyituCadItemInfo>) {
+    if ((this.data.xinghaozhuanyongCadCount || 0) > 0) {
+      await this.message.alert("不可以选择");
+      return;
+    }
     if (typeof key1 !== "string") {
       key1 = key1.customInfo.key1;
     }
     const data = this.formData[key1].示意图CAD;
-    const checkedItems: string[] = [];
-    const yaoqiu = await this.status.getCad数据要求("算料单示意图");
+    const yaoqiu = this.status.getCad数据要求("算料单示意图");
     if (!yaoqiu) {
       return;
-    }
-    for (const item of data.算料单示意图) {
-      checkedItems.push(item._id);
     }
     const {search, addCadData} = getShiyituCadSearch(this.formData, key1);
     const result = await openCadListDialog(this.dialog, {
@@ -567,18 +555,17 @@ export class MenjiaoDialogComponent implements OnInit {
         selectMode: "multiple",
         collection: "cad",
         search,
-        checkedItems,
         addCadData,
         yaoqiu
       }
     });
     if (result) {
-      data.算料单示意图 = result.map((v) => {
-        if (!checkedItems.includes(v.id)) {
-          setCadData(v, yaoqiu.选中CAD要求);
-        }
-        return getHoutaiCad(v);
-      });
+      for (const v of result) {
+        const houtaiId = v.id;
+        const v2 = v.clone(true);
+        delete v2.info.imgId;
+        data.算料单示意图.push(getHoutaiCad(v2, {houtaiId}));
+      }
       updateMenjiaoData(this.formData);
     }
   }
@@ -601,7 +588,7 @@ export class MenjiaoDialogComponent implements OnInit {
     }
     const data = this.formData;
     const morenbancai = cloneDeep(data[key1].板材分组);
-    const cads = data[key1].算料CAD.map((v) => new CadData(v.json));
+    const cads = data[key1].算料CAD.map((v) => new CadData(v.json)).filter((v) => filterCad2(v, {skipTpyeCheck: true}));
     await componentLrsj.updateHuajians();
     const huajians = componentLrsj.filterHuajians(data[key1]);
     return {
@@ -624,7 +611,6 @@ export class MenjiaoDialogComponent implements OnInit {
     });
     if (result) {
       this.formData[key1].板材分组 = result.data.默认板材;
-      console.log(result);
       if (result.submit2) {
         await this.submit(false);
       } else {
@@ -703,6 +689,16 @@ export class MenjiaoDialogComponent implements OnInit {
     data[key1].算料公式 = cloneDeep(data2.算料公式);
     data[key1].测试用例 = cloneDeep(data2.测试用例);
     data[key1].算料CAD = cloneDeep(data2.算料CAD);
+    data[key1].企料CAD = {};
+    for (const key2 in data2.企料CAD) {
+      const item = {...data2.企料CAD[key2]};
+      let cad: 企料CAD["cad"] = undefined;
+      if (data2.企料CAD[key2].cad) {
+        cad = getHoutaiCad(new CadData(data2.企料CAD[key2].cad.json));
+      }
+      delete item.cad;
+      data[key1].企料CAD[key2] = {cad, ...cloneDeep(item)};
+    }
     const from = cloneDeep(suanliaoDataParams);
     const [包边方向2, 开启2] = result.split("+");
     from.选项.包边方向 = 包边方向2;
@@ -743,10 +739,8 @@ export class MenjiaoDialogComponent implements OnInit {
   }
 
   async validate() {
+    this.errors = this.getEmptyErrors();
     const {inputs, formData: data, errors} = this;
-    for (const key of keysOf(errors)) {
-      errors[key] = false;
-    }
     const {errors: inputErrors} = await validateForm(inputs?.toArray() || []);
 
     const key1Errors = await Promise.all(
@@ -768,17 +762,20 @@ export class MenjiaoDialogComponent implements OnInit {
             }
           }
         }
-        const missingValues = [];
+        const missingCads: string[] = [];
+        if (this.key1Infos[key1]) {
+          this.key1Infos[key1].missingCads = missingCads;
+        }
         for (const key2 of 算料数据2Keys) {
           for (const key3 in value[key2]) {
             if (!value[key2][key3].cad) {
-              missingValues.push(key3);
+              missingCads.push(key3);
             }
           }
         }
         const errors2 = [];
-        if (missingValues.length > 0) {
-          errors2.push("选择" + missingValues.join("、"));
+        if (missingCads.length > 0) {
+          errors2.push("选择" + missingCads.join("、"));
           errors.others = true;
         }
         const mrbcjfzResult = await openMrbcjfzDialog(this.dialog, {
@@ -793,6 +790,7 @@ export class MenjiaoDialogComponent implements OnInit {
         if (errors2.length > 0) {
           const error = `请${errors2.join("并")}`;
           this.key1Infos[key1].error = error;
+          errors.key1[key1] = error;
           return {[error]: true};
         } else {
           this.key1Infos[key1].error = "";
@@ -852,10 +850,12 @@ export class MenjiaoDialogComponent implements OnInit {
 
   getFentiDialogInput(key1: MenjiaoCadType, key2: string, key3: string): CadItemComponent["fentiDialogInput"] {
     if (key2 === "企料CAD") {
+      const item = this.formData[key1];
       return {
-        data: this.formData[key1][key2][key3]["企料分体CAD"] || {},
+        data: item[key2][key3]["企料分体CAD"] || {},
         cadSize: [this.cadWidth, this.cadHeight],
-        cad数据要求: this.getCadshujuyaoqiu("企料分体")
+        cad数据要求: this.getCadshujuyaoqiu("企料分体"),
+        gongshis: item.算料公式
       };
     }
     return undefined;

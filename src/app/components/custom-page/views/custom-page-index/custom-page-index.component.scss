@@ -1,20 +1,53 @@
-.显示内容 {
-  width: 300px;
+.header {
+  position: relative;
 }
 
-.工作区 {
+.显示内容 {
+  width: 0;
+}
+.work-space {
   flex: 1 1 0;
   overflow: hidden;
+  position: relative;
+}
+.menus {
+  width: 300px;
+  display: flex;
 }
 
-.功能区 {
-  width: 300px;
+.page {
+  margin: auto;
+  position: relative;
+}
+.page-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: var(--background-inner);
+}
+.multi-selector {
+  position: absolute;
+  background-color: rgba(29, 149, 234, 0.3);
+  border: white solid 1px;
 }
 
 mat-tab-group {
   ::ng-deep {
+    .mat-mdc-tab-body-wrapper {
+      flex: 1 1 0;
+    }
     mat-tab-body {
       padding: 5px;
+      display: flex;
+      flex-direction: column;
+    }
+    .mat-mdc-tab-body-content {
+      overflow: hidden;
+      > * {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
     }
 
     .mat-mdc-tab {

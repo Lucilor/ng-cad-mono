@@ -34,9 +34,29 @@ export interface Slgs {
 
 export interface CadInfo {
   data: CadData;
-  errors: string[];
+  errors: (CadInfoError | string)[];
   skipErrorCheck: Set<string>;
 }
+export interface CadInfoError {
+  text: string;
+  detail: string;
+}
+export const addCadInfoError = (cad: CadInfo, error: CadInfoError | string) => {
+  const errorText = typeof error === "string" ? error : error.text;
+  const found = cad.errors.find((v) => {
+    if (typeof v === "string") {
+      return v === errorText;
+    }
+    return v.text === errorText;
+  });
+  if (found) {
+    return;
+  }
+  cad.errors.push(error);
+};
+export const addCadInfoErrors = (cad: CadInfo, errors: (CadInfoError | string)[]) => {
+  errors.forEach((v) => addCadInfoError(cad, v));
+};
 
 /**
  * 算料公式
@@ -372,16 +392,18 @@ export class CadPortable {
               zhankaiObjs = Array.from(value.matchAll(/\[([^\]]*)\]/g)).map((vv) => {
                 const arr = vv[1].split(",").map((v) => v.trim());
                 if (obj.分类 === "包边正面") {
-                  if (arr.length < 3) {
-                    cad.errors.push("包边正面展开必须至少有3项, 有两个展开高");
+                  if (!arr[1].includes(";")) {
+                    if (arr.length < 3) {
+                      cad.errors.push("包边正面展开必须至少有3项, 有两个展开高");
+                    }
+                    arr[1] = arr[1] + "," + arr[2];
+                    arr.splice(2, 1);
                   }
-                  arr[1] = arr[1] + "," + arr[2];
-                  arr.splice(2, 1);
                 }
                 const zhankaikuan = arr[0];
                 const zhankaigao = arr[1];
                 const shuliang = arr[2];
-                const conditions = arr[3] ? [arr[3]] : undefined;
+                const conditions = arr.slice(3);
                 for (const vvv of [zhankaikuan, zhankaigao, shuliang]) {
                   if (vvv && vvv.match(/['"]/)) {
                     cad.errors.push("展开宽, 展开高和数量不能有引号");
@@ -456,6 +478,9 @@ export class CadPortable {
             vars[varName] = e.id;
           }
           delete e.info.varName;
+          if (isShiyituCad) {
+            e.hideLength = true;
+          }
         }
       });
       for (const e of [...data.entities.line, ...data.entities.arc]) {
@@ -621,9 +646,7 @@ export class CadPortable {
         const zhankaiStr = cad.zhankai
           .map((v) => {
             const arr = [v.zhankaikuan, v.zhankaigao, v.shuliang];
-            if (v.conditions.length > 0) {
-              arr.push(v.conditions[0]);
-            }
+            arr.push(...v.conditions);
             return `[${arr.join(", ")}]`;
           })
           .join(", ");

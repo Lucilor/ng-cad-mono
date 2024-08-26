@@ -1,4 +1,4 @@
-import {AbstractControlOptions} from "@angular/forms";
+import {AbstractControl, AbstractControlOptions, ValidationErrors} from "@angular/forms";
 import {FloatLabelType} from "@angular/material/form-field";
 import {Formulas} from "@app/utils/calc";
 import {CadOptionsInput, CadOptionsOutput} from "@components/dialogs/cad-options/cad-options.component";
@@ -6,7 +6,7 @@ import {EditFormulasInput} from "@components/dialogs/edit-formulas-dialog/edit-f
 import {ObjectOf} from "@lucilor/utils";
 import {OptionsData} from "@modules/http/services/cad-data.service.types";
 import Color from "color";
-import csstype from "csstype";
+import {Properties} from "csstype";
 
 export type Value<T> = T | (() => T);
 
@@ -27,11 +27,12 @@ export interface InputInfoBase<T = any> {
   autoFocus?: boolean;
   placeholder?: string;
   validators?: AbstractControlOptions["validators"];
-  initialValidate?: boolean;
+  noInitialValidate?: boolean;
   forceValidateNum?: number; // change this to trigger validation
   name?: string;
   class?: string | string[];
-  style?: csstype.Properties;
+  style?: Properties;
+  inputTextAlign?: Properties["textAlign"];
   hidden?: boolean;
   displayValue?: Value<string>;
   filterValuesGetter?: (option: InputInfoOption<T>) => string[];
@@ -63,6 +64,8 @@ export interface InputInfoNumber<T = any> extends InputInfoBase<T> {
   onChange?: (val: number, info: InputInfoNumber<T>) => void;
 }
 
+export type KeyValidatorFn = (control: AbstractControl, objValue: string) => ValidationErrors | null;
+export type ValueValidatorFn = (control: AbstractControl, objKey: string) => ValidationErrors | null;
 export interface InputInfoObject<T = any, K = string> extends InputInfoBase<T> {
   type: "object";
   value?: Value<ObjectOf<any>>;
@@ -72,10 +75,12 @@ export interface InputInfoObject<T = any, K = string> extends InputInfoBase<T> {
   optionMultiple?: boolean;
   keyLabel?: string;
   valueLabel?: string;
-  keyValidators?: AbstractControlOptions["validators"];
-  valueValidators?: AbstractControlOptions["validators"];
+  keyValidators?: KeyValidatorFn | KeyValidatorFn[] | null;
+  valueValidators?: ValueValidatorFn | ValueValidatorFn[] | null;
   keysReadonly?: boolean;
   parseString?: boolean;
+  isXuanxiang?: boolean;
+  requiredKeys?: string[];
 }
 
 export interface InputInfoArray<T = any> extends InputInfoBase<T> {
@@ -87,7 +92,7 @@ export interface InputInfoArray<T = any> extends InputInfoBase<T> {
 
 export interface InputInfoBoolean<T = any> extends InputInfoBase<T> {
   type: "boolean";
-  radio?: boolean;
+  appearance?: "select" | "radio" | "switch";
   onChange?: (val: boolean, info: InputInfoBoolean<T>) => void;
 }
 
@@ -176,7 +181,7 @@ export interface InputInfoList<T = any> extends InputInfoBase<T> {
 export interface InputInfoGroup<T = any> extends InputInfoBase<T> {
   type: "group";
   infos?: InputInfo<T>[];
-  groupStyle?: csstype.Properties;
+  groupStyle?: Properties;
 }
 
 export type InputInfo<T = any> =
@@ -195,7 +200,7 @@ export type InputInfo<T = any> =
   | InputInfoList<T>
   | InputInfoGroup<T>;
 
-export type InputInfoOption<T = any> = {value: T; label?: string; disabled?: boolean; img?: string};
+export type InputInfoOption<T = any> = {value: T; label?: string; disabled?: boolean; img?: string; vid?: number};
 
 export type InputInfoOptions<T = any> = (InputInfoOption<T> | string)[];
 
@@ -208,5 +213,6 @@ export interface OptionsDialog {
   openInNewTab?: CadOptionsInput["openInNewTab"];
   useLocalOptions?: CadOptionsInput["useLocalOptions"];
   nameField?: CadOptionsInput["nameField"];
+  info?: CadOptionsInput["info"];
   onChange?: (val: CadOptionsOutput) => void;
 }

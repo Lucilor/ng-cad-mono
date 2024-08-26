@@ -21,6 +21,6 @@ export const getContent = (domSanitizer: DomSanitizer, desc: Desc): string => {
 
 export const getEmphasized = (str: string) => `<span style='color:deeppink'>${str}</span>`;
 
-export const getBashStyle = (str: string) => `<code class="bash hljs">${hljs.highlight("bash", str).value}</code>`;
+export const getBashStyle = (str: string) => `<code class="bash hljs">${hljs.highlight(str, {language: "bash"}).value}</code>`;
 
 export const spaceReplacer = v4();

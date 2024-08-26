@@ -26,7 +26,7 @@ export class XhmrmsbjData {
     this.menshanbujuInfos = {};
     try {
       info = JSON.parse(data.peizhishuju || "");
-    } catch (error) {}
+    } catch {}
     if (!info || typeof info !== "object") {
       info = {};
     }

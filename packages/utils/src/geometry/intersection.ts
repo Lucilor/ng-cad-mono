@@ -32,8 +32,9 @@ export const lineIntersectsLine = (line1: Line, line2: Line, extend = false, tol
     } else if (isContain3 && isContain4) {
       p5 = p1;
       p6 = p2;
-    } else if (isContain1 || isContain2 || isContain3 || isContain4) {
+    } else if (isContain1 || isContain2) {
       p5 = isContain1 ? p3 : p4;
+    } else if (isContain3 || isContain4) {
       p6 = isContain3 ? p1 : p2;
     }
     if (p5 && p6) {

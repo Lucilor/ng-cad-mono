@@ -4,13 +4,16 @@ import {MatButtonModule} from "@angular/material/button";
 import {MatDialogRef} from "@angular/material/dialog";
 import {MatDividerModule} from "@angular/material/divider";
 import {MatIconModule} from "@angular/material/icon";
+import {MessageService} from "@app/modules/message/services/message.service";
+import {AppConfigService} from "@app/services/app-config.service";
+import {environment} from "@env";
 import {CadDataService} from "@modules/http/services/cad-data.service";
 import {ImageComponent} from "@modules/image/components/image/image.component";
 import {SpinnerModule} from "@modules/spinner/spinner.module";
 import {AppStatusService} from "@services/app-status.service";
 import {uniqueId} from "lodash";
-import {InfiniteScrollModule} from "ngx-infinite-scroll";
 import {NgScrollbar} from "ngx-scrollbar";
+import {take} from "rxjs";
 import {getOpenDialogFunc} from "../dialog.common";
 
 @Component({
@@ -18,16 +21,7 @@ import {getOpenDialogFunc} from "../dialog.common";
   templateUrl: "./changelog.component.html",
   styleUrls: ["./changelog.component.scss"],
   standalone: true,
-  imports: [
-    ImageComponent,
-    InfiniteScrollModule,
-    MatButtonModule,
-    MatDividerModule,
-    MatIconModule,
-    NgScrollbar,
-    NgTemplateOutlet,
-    SpinnerModule
-  ]
+  imports: [ImageComponent, MatButtonModule, MatDividerModule, MatIconModule, NgScrollbar, NgTemplateOutlet, SpinnerModule]
 })
 export class ChangelogComponent implements OnInit {
   @HostBinding("class") class = "ng-page";
@@ -47,11 +41,17 @@ export class ChangelogComponent implements OnInit {
   loaderId = uniqueId("changelog-loader-");
   updateTime = 0;
   updateDivideIndex = -1;
+  env = environment;
+  get branch() {
+    return environment.beta ? "next" : "master";
+  }
 
   constructor(
     public dialogRef: MatDialogRef<ChangelogComponent, void>,
     private http: CadDataService,
-    private status: AppStatusService
+    private status: AppStatusService,
+    private config: AppConfigService,
+    private message: MessageService
   ) {}
 
   ngOnInit() {
@@ -59,9 +59,9 @@ export class ChangelogComponent implements OnInit {
   }
 
   private async getData() {
-    const {pageSize} = this;
+    const {pageSize, branch} = this;
     this.updateTime = await this.status.getUpdateTimeStamp();
-    const changelog = await this.http.getChangelog(1, pageSize, {spinner: this.loaderId});
+    const changelog = await this.http.getChangelog({page: 1, pageSize, branch}, {spinner: this.loaderId});
     this.updateDivideIndex = -1;
     this.changelog = changelog.map((item, i) => {
       const [message, ...details] = item.commit.message.split(this.separator);
@@ -101,6 +101,24 @@ export class ChangelogComponent implements OnInit {
 
   openCommit(item: (typeof this.changelog)[number]) {
     window.open(item.url, "_blank");
+  }
+
+  async toggleEnvBeta() {
+    let msg: string;
+    if (!environment.production) {
+      msg = `testMode: ${this.config.getConfig("testMode")}`;
+    } else if (environment.beta) {
+      msg = "是否切换到正式版？";
+    } else {
+      msg = "是否切换到测试版（功能可能不稳定）？";
+    }
+    if (!(await this.message.confirm(msg))) {
+      return;
+    }
+    this.config.setConfigWith("testMode", (v) => !v);
+    this.config.userConfigSaved$.pipe(take(1)).subscribe(() => {
+      this.status.checkEnvBeta();
+    });
   }
 }
 

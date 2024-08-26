@@ -2,7 +2,6 @@
   &.color {
     input {
       transition: 0.3s;
-      text-transform: uppercase;
     }
   }
   &.image {
@@ -40,6 +39,9 @@
   .mat-mdc-form-field-infix {
     width: auto;
   }
+  input {
+    text-align: var(--input-text-align);
+  }
 }
 
 .drag-list-item {
@@ -65,6 +67,7 @@
 
 .sub-form-field {
   height: 100%;
+  margin-bottom: 5px;
 
   > div .mat-mdc-form-field:not(:last-child) {
     padding-right: 5px;
@@ -83,4 +86,10 @@
   .error {
     color: var(--mat-form-field-error-text-color);
   }
+}
+
+.switch-container {
+  display: flex;
+  padding: 5px;
+  align-items: center;
 }

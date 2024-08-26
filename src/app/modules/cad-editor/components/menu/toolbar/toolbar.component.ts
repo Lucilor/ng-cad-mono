@@ -4,14 +4,16 @@ import {MatButtonModule} from "@angular/material/button";
 import {MatDialog} from "@angular/material/dialog";
 import {MatDividerModule} from "@angular/material/divider";
 import {MatMenuModule} from "@angular/material/menu";
+import {KeyEventItem, onKeyEvent} from "@app/app.common";
 import {isLengthTextSizeSetKey} from "@app/cad/utils";
 import {OpenCadOptions} from "@app/services/app-status.types";
 import {AboutComponent} from "@components/about/about.component";
 import {openBbzhmkgzDialog} from "@components/dialogs/bbzhmkgz/bbzhmkgz.component";
 import {openCadLineTiaojianquzhiDialog} from "@components/dialogs/cad-line-tjqz/cad-line-tjqz.component";
 import {editCadZhankai} from "@components/dialogs/cad-zhankai/cad-zhankai.component";
+import {environment} from "@env";
 import {CadLine, CadMtext, sortLines} from "@lucilor/cad-viewer";
-import {ObjectOf, timeout} from "@lucilor/utils";
+import {timeout} from "@lucilor/utils";
 import {CadConsoleService} from "@modules/cad-console/services/cad-console.service";
 import {CadDataService} from "@modules/http/services/cad-data.service";
 import {MessageService} from "@modules/message/services/message.service";
@@ -33,18 +35,34 @@ import {openCadLineForm} from "../cad-line/cad-line.utils";
 })
 export class ToolbarComponent {
   openLock = false;
-  keyMap: ObjectOf<() => void> = {
-    s: () => this.save(),
-    1: () => this.open("1"),
-    2: () => this.open("2"),
-    3: () => this.open("3"),
-    4: () => this.open("4"),
-    5: () => this.open("5"),
-    g: () => this.assembleCads(),
-    h: () => this.splitCad(),
-    p: () => this.printCad(),
-    q: () => this.newCad()
-  };
+  keyEventItems: KeyEventItem[] = [
+    {key: "s", ctrl: true, action: () => this.save()},
+    {key: "1", ctrl: true, action: () => this.open("1")},
+    {key: "2", ctrl: true, action: () => this.open("2")},
+    {key: "3", ctrl: true, action: () => this.open("3")},
+    {key: "4", ctrl: true, action: () => this.open("4")},
+    {key: "5", ctrl: true, action: () => this.open("5")},
+    {key: "g", ctrl: true, action: () => this.assembleCads()},
+    {key: "h", ctrl: true, action: () => this.splitCad()},
+    {key: "p", ctrl: true, action: () => this.printCad()},
+    {key: "q", ctrl: true, action: () => this.newCad()},
+    {
+      key: "escape",
+      action: () => {
+        if (this.exitWithEsc) {
+          this.backToNormal();
+        }
+      }
+    },
+    {
+      key: "enter",
+      action: () => {
+        if (this.confirmWithEnter) {
+          this.backToNormal(true);
+        }
+      }
+    }
+  ];
 
   get isStatusNormal() {
     return this.status.cadStatus instanceof CadStatusNormal;
@@ -73,29 +91,11 @@ export class ToolbarComponent {
     startWith({}),
     map((v) => !!v.isLocal)
   );
+  env = environment;
 
   @HostListener("window:keydown", ["$event"])
   onKeyDown(event: KeyboardEvent) {
-    const {ctrlKey} = event;
-    if (!event.key) {
-      // ? key有可能是undefined
-      return;
-    }
-    const key = event.key.toLowerCase();
-    if (ctrlKey && this.keyMap[key]) {
-      event.preventDefault();
-      this.clickBtn(key);
-    } else if (key === "escape") {
-      if (this.exitWithEsc) {
-        event.preventDefault();
-        this.backToNormal();
-      }
-    } else if (key === "enter") {
-      if (this.confirmWithEnter) {
-        event.preventDefault();
-        this.backToNormal(true);
-      }
-    }
+    onKeyEvent(event, this.keyEventItems);
   }
 
   constructor(
@@ -113,7 +113,8 @@ export class ToolbarComponent {
   }
 
   clickBtn(key: string) {
-    this.keyMap[key]?.();
+    const item = this.keyEventItems.find((v) => v.key === key);
+    item?.action();
   }
 
   save() {
@@ -305,7 +306,7 @@ export class ToolbarComponent {
     if (!line) {
       return;
     }
-    await openCadLineForm(this.status.collection$.value, this.status, this.message, this.status.cad, line);
+    await openCadLineForm(this.status.collection$.value, this.status, this.message, this.status.cad, line, null);
   }
 
   async editBbzhmkgz() {
@@ -365,10 +366,6 @@ export class ToolbarComponent {
     const url = new URL(location.href);
     url.pathname = url.pathname.slice(0, url.pathname.lastIndexOf("/")) + "/backup";
     window.open(url.href);
-  }
-
-  toggleTestMode() {
-    this.config.setConfigWith("testMode", (v) => !v);
   }
 
   async openCadLayerDialog() {

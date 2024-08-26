@@ -1,20 +1,16 @@
 import {KeyValuePipe, NgTemplateOutlet} from "@angular/common";
 import {Component, HostBinding, Inject, OnInit} from "@angular/core";
-import {Validators} from "@angular/forms";
 import {MatButtonModule} from "@angular/material/button";
 import {MAT_DIALOG_DATA, MatDialog, MatDialogRef} from "@angular/material/dialog";
 import {MatDividerModule} from "@angular/material/divider";
 import {setGlobal} from "@app/app.common";
-import {setCadData} from "@app/cad/cad-shujuyaoqiu";
 import {CadCollection} from "@app/cad/collections";
 import {openCadListDialog} from "@app/components/dialogs/cad-list/cad-list.component";
 import {CadListInput} from "@app/components/dialogs/cad-list/cad-list.types";
 import {getHoutaiCad} from "@app/modules/http/services/cad-data.service.utils";
 import {getOpenDialogFunc} from "@components/dialogs/dialog.common";
-import {CadData} from "@lucilor/cad-viewer";
 import {CadDataService} from "@modules/http/services/cad-data.service";
 import {HoutaiCad} from "@modules/http/services/cad-data.service.types";
-import {InputInfo} from "@modules/input/components/input.types";
 import {MessageService} from "@modules/message/services/message.service";
 import {SpinnerModule} from "@modules/spinner/spinner.module";
 import {AppStatusService} from "@services/app-status.service";
@@ -234,62 +230,6 @@ export class TongyongshujuDialogComponent implements OnInit {
     }
   }
 
-  async addCad() {
-    const {collection, tableData, activeItem, activeCadList} = this;
-    if (!activeItem || !activeCadList) {
-      return;
-    }
-    const item = tableData[activeItem.index];
-    if (!this.isDataHaveCad(item)) {
-      return;
-    }
-    const data: Partial<HoutaiCad> = {名字: ""};
-    const form: InputInfo<typeof data>[] = [];
-
-    const name = this.replaceCadStr(item.cadmingziyaoqiu, activeCadList.index);
-    if (name === null) {
-      return;
-    }
-    const names = name.split("+");
-    if (names.length > 1) {
-      form.push({
-        type: "select",
-        label: "名字",
-        model: {data, key: "名字"},
-        options: names.map((name) => ({label: name, value: name})),
-        validators: Validators.required
-      });
-    } else {
-      data.名字 = name;
-      form.push({type: "string", label: "名字", model: {data, key: "名字"}, readonly: !!name, validators: Validators.required});
-    }
-
-    if (item.cadyaoqiu) {
-      data.分类 = item.cadyaoqiu;
-    }
-    if (item.cadxuanxiangyaoqiu) {
-      data.选项 = {};
-      for (const str of item.cadxuanxiangyaoqiu.split(";")) {
-        const [key, value] = str.split("=");
-        if (key && value) {
-          const value2 = this.replaceCadStr(value, activeCadList.index);
-          if (!value2) {
-            return;
-          }
-          data.选项[key] = value2;
-        }
-      }
-    }
-
-    const result = await this.message.form(form);
-    if (result) {
-      const success = await this.http.mongodbInsert(collection, data, {}, {spinner: this.cadListLoader});
-      if (success) {
-        await this.refreshActiveCadList();
-      }
-    }
-  }
-
   getShujuyaoqiu(item: TongyongshujuData) {
     return this.status.getCad数据要求(item.cadyaoqiu);
   }
@@ -308,27 +248,17 @@ export class TongyongshujuDialogComponent implements OnInit {
       fixedSearch = {分类: item.cadyaoqiu};
     }
     const result = await openCadListDialog(this.dialog, {
-      data: {collection: "cad", selectMode: "multiple", fixedSearch, yaoqiu}
+      data: {collection: "cad", selectMode: "single", checkedItemsLimit: 1, fixedSearch, yaoqiu, vars: {当前选项: item2.mingzi}}
     });
     if (result) {
       const {collection} = this;
       for (const cad of result) {
-        const ids = await this.http.mongodbCopy(collection, [cad.id], {}, {spinner: this.cadListLoader});
-        const id = ids?.[0];
-        if (!id) {
-          continue;
-        }
-        const cads = await this.http.queryMongodb<HoutaiCad>({collection, where: {_id: id}}, {spinner: this.cadListLoader});
-        if (!cads?.[0]) {
-          continue;
-        }
-        const cad2 = new CadData(cads[0].json);
-        cad2.options[item.mingzi] = item2.mingzi;
-        setCadData(cad, yaoqiu?.选中CAD要求 || []);
-        await this.http.mongodbUpdate(collection, getHoutaiCad(cad2), {spinner: this.cadListLoader});
+        cad.id = "";
+        cad.options[item.mingzi] = item2.mingzi;
+        await this.http.mongodbInsert(collection, getHoutaiCad(cad), {force: true}, {spinner: this.cadListLoader});
+        await this.refreshActiveCadList();
       }
     }
-    await this.refreshActiveCadList();
   }
 
   async copyCad(component: CadItemComponent<TongyongshujuCadItemInfo>) {

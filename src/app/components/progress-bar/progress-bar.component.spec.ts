@@ -14,6 +14,10 @@ describe("ProgressBarComponent", () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(ProgressBarComponent);
     component = fixture.componentInstance;
+    const ref = fixture.componentRef;
+    ref.setInput("progress", 0);
+    ref.setInput("status", "hidden");
+    ref.setInput("msg", "");
     fixture.detectChanges();
   });
 

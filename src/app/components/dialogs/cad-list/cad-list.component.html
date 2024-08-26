@@ -55,10 +55,12 @@
     <div class="cads items no-items-per-row add-empty-msg">
       @for (item of pageData; track i; let i = $index) {
         <app-cad-item
+          #cadItem
           [cad]="item.data"
           [buttons]="cadItemButtons"
           [customInfo]="{index: i}"
           [yaoqiu]="data.yaoqiu"
+          [gongshis]="data.gongshis"
           [isOnline]="{isFetched: item.isFetched, afterFetch: afterFetch.bind(this)}"
           [selectable]="getItemSelectable(item)"
         ></app-cad-item>
@@ -86,5 +88,6 @@
     <button mat-icon-button color="primary" type="submit" matSuffix (click)="search()">
       <mat-icon>search</mat-icon>
     </button>
+    <mat-hint>按回车开始搜索</mat-hint>
   </mat-form-field>
 </ng-template>

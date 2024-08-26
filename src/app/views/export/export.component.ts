@@ -59,9 +59,9 @@ export class ExportComponent implements OnInit {
     if (!this.exportCache?.lurushuju) {
       const data = this.exportParams;
       this.inputInfos = [
-        {type: "boolean", label: "导出ID", radio: true, model: {data, key: "exportId"}},
-        {type: "boolean", label: "导出唯一码", radio: true, model: {data, key: "exportUniqCode"}},
-        {type: "boolean", label: "导出选项", radio: true, model: {data, key: "exportOptions"}}
+        {type: "boolean", label: "导出ID", appearance: "radio", model: {data, key: "exportId"}},
+        {type: "boolean", label: "导出唯一码", appearance: "radio", model: {data, key: "exportUniqCode"}},
+        {type: "boolean", label: "导出选项", appearance: "radio", model: {data, key: "exportOptions"}}
       ];
     }
   }
@@ -146,7 +146,7 @@ export class ExportComponent implements OnInit {
           let sourceCad: CadData;
           try {
             sourceCad = new CadData(response.data.cad);
-          } catch (error) {
+          } catch {
             finish("error", "CAD数据错误");
             return;
           }

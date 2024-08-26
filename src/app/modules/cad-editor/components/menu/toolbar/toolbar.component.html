@@ -23,7 +23,7 @@
 
     <button mat-button [matMenuTriggerFor]="edit" [disabled]="!isStatusNormal">编辑</button>
     <mat-menu #edit="matMenu">
-      @if (getConfig("testMode")) {
+      @if (env.beta) {
         <button mat-menu-item (click)="openCadLayerDialog()">图层</button>
       }
       <button mat-menu-item [matMenuTriggerFor]="transform">变形</button>
@@ -44,9 +44,7 @@
 
     <button mat-button [matMenuTriggerFor]="view" [disabled]="!isStatusNormal">视图</button>
     <mat-menu #view="matMenu">
-      <button mat-menu-item (click)="setShowGongshi()">设置公式显示</button>
       <button mat-menu-item (click)="setPointSize()">设置选取点大小</button>
-      <button mat-menu-item (click)="toggleTestMode()">{{ getConfig("testMode") ? "关闭" : "开启" }}内测功能</button>
     </mat-menu>
 
     <app-about></app-about>

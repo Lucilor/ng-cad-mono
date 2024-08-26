@@ -244,7 +244,7 @@ export class SuanliaogongshiComponent implements OnChanges {
       let data2: any;
       try {
         data2 = JSON.parse(reader.result as string);
-      } catch (e) {}
+      } catch {}
       if (Array.isArray(data2)) {
         if (!Array.isArray(data.算料公式)) {
           data.算料公式 = [];

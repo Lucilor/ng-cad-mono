@@ -1,4 +1,5 @@
-<app-bancai-form [data]="data.data" [bancaiList]="data.bancaiList"></app-bancai-form>
+<div matDialogTitle>分组：【{{ data.key }}】</div>
+<app-bancai-form [data]="data.data" [bancaiList]="data.bancaiList" [xinghao]="data.xinghao" [key]="data.key"></app-bancai-form>
 <div matDialogActions>
   @if (!prod) {
     <button mat-raised-button color="primary" (click)="selectRandom()">rand</button>

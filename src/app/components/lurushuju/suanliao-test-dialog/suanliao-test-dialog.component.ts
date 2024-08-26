@@ -177,7 +177,7 @@ export class SuanliaoTestDialogComponent implements OnInit {
       let data2: any;
       try {
         data2 = JSON.parse(reader.result as string);
-      } catch (e) {}
+      } catch {}
       if (Array.isArray(data2)) {
         data.测试用例.push(...data2);
         this.updateInfo();

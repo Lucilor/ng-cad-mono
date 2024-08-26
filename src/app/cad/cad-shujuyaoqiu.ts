@@ -3,8 +3,8 @@ import {cadFields} from "@app/modules/cad-editor/components/menu/cad-info/cad-in
 import {HoutaiCad, TableDataBase} from "@app/modules/http/services/cad-data.service.types";
 import {getHoutaiCad} from "@app/modules/http/services/cad-data.service.utils";
 import {importComponentConfigNames} from "@app/views/import/import.types";
-import {CadData, CadZhankai} from "@lucilor/cad-viewer";
-import {downloadByUrl, isTypeOf, ObjectOf, queryString} from "@lucilor/utils";
+import {CadData, CadLineLike, CadZhankai, intersectionKeysTranslate} from "@lucilor/cad-viewer";
+import {downloadByUrl, isTypeOf, keysOf, ObjectOf, queryString} from "@lucilor/utils";
 
 export interface Cad数据要求Raw extends TableDataBase {
   cadtanchuangxiugaishuxing: string;
@@ -96,7 +96,7 @@ export class Cad数据要求 {
     this.CAD弹窗修改属性 = getItems(raw.cadtanchuangxiugaishuxing);
     this.线段弹窗修改属性 = split(raw.xianduantanchuangxiugaishuxing);
     this.新建CAD要求 = getItems(raw.tianjiahuodaorucadyaoqiu);
-    this.选中CAD要求 = getItems(raw.xuanzhongcadyuchuli);
+    this.选中CAD要求 = getItems(raw.xuanzhongcadyuchuli || "删除展开信息");
     this.search = search;
     this.导入配置 = {};
     this.选择CAD弹窗筛选数据要求 = raw.xuanzecadtanchuangshaixuanshujuyaoqiu;
@@ -105,7 +105,7 @@ export class Cad数据要求 {
     let 导入配置Raw: ObjectOf<any> | undefined;
     try {
       导入配置Raw = JSON.parse(raw.daorucadpeizhi);
-    } catch (error) {}
+    } catch {}
     if (isTypeOf(导入配置Raw, "object")) {
       for (const key in 导入配置Raw) {
         if (!importComponentConfigNames.includes(key as any)) {
@@ -161,11 +161,51 @@ export const filterCad = (query: string, cad: HoutaiCad, yaoqiu: Cad数据要求
   return false;
 };
 
-export const setCadData = (data: CadData, yaoqiuItems: Cad数据要求Item[]) => {
+export const validateCad = (data: CadData, yaoqiuItems: Cad数据要求Item[]) => {
+  const isEmpty = (v: any) => [undefined, null, ""].includes(v);
+  for (const {key, key2, cadKey, required, value} of yaoqiuItems) {
+    if (!required) {
+      continue;
+    }
+    if (cadKey) {
+      let value2: any;
+      if (key2) {
+        value2 = (data[cadKey] as any)[key2];
+      } else {
+        value2 = data[cadKey];
+      }
+      if (isEmpty(value2)) {
+        return false;
+      }
+      if (!isEmpty(value) && value2 !== value) {
+        return false;
+      }
+    } else if (key === "展开信息") {
+      const zhankai = data.zhankai[0];
+      if (!zhankai || !zhankai.zhankaikuan || !zhankai.zhankaigao || !zhankai.shuliang) {
+        return false;
+      }
+    }
+  }
+  return true;
+};
+
+export const setCadData = (data: CadData, yaoqiuItems: Cad数据要求Item[], vars?: ObjectOf<string>) => {
   const dataAny = data as any;
   const toRemoveMap: ObjectOf<{keys2: string[]}> = {};
   const toReserveMap: typeof toRemoveMap = {};
-  for (const {key, cadKey, value, key2, override, remove, reserve} of yaoqiuItems) {
+  const getValue = (value: any) => {
+    if (typeof value === "string") {
+      if (vars) {
+        let value2 = value;
+        for (const key in vars) {
+          value2 = value2.replaceAll(key, vars[key]);
+        }
+      }
+    }
+    return value;
+  };
+  for (const {key, cadKey, value, key2, override, remove, reserve, required} of yaoqiuItems) {
     if (cadKey) {
       if (remove) {
         if (toRemoveMap[cadKey]) {
@@ -185,37 +225,60 @@ export const setCadData = (data: CadData, yaoqiuItems: Cad数据要求Item[]) =>
           toReserveMap[cadKey] = {keys2: key2 ? [key2] : []};
         }
       }
-    }
-    if (value) {
-      if (key === "展开信息") {
-        let arr: any[];
-        try {
-          arr = JSON.parse(value);
-        } catch (error) {
-          continue;
-        }
-        const [a, b, c] = arr.map((v) => v?.toString?.() || "");
-        if (data.zhankai.length < 1) {
-          data.zhankai.push(new CadZhankai({name: data.name}));
-        }
-        const zhankai = data.zhankai[0];
-        if (!zhankai.zhankaikuan || override) {
-          zhankai.zhankaikuan = a || "";
-        }
-        if (!zhankai.zhankaigao || override) {
-          zhankai.zhankaigao = b || "";
-        }
-        if (!zhankai.shuliang || override) {
-          zhankai.shuliang = c || "";
-        }
-      } else if (cadKey) {
+      if (value) {
         if (key2) {
           if (!dataAny[cadKey][key2] || override) {
-            dataAny[cadKey][key2] = value;
+            dataAny[cadKey][key2] = getValue(value);
           }
         } else {
           if (!dataAny[cadKey] || override) {
-            dataAny[cadKey] = value;
+            dataAny[cadKey] = getValue(value);
+          }
+        }
+      }
+    }
+    if (key === "展开信息") {
+      if (data.zhankai.length < 1) {
+        data.zhankai.push(new CadZhankai({name: data.name}));
+      }
+      const zhankai = data.zhankai[0];
+      if (remove) {
+        zhankai.zhankaikuan = "ceil(总长)+0";
+        zhankai.zhankaigao = "";
+        zhankai.shuliang = "";
+      } else {
+        let value2 = typeof value === "string" ? value : "";
+        if (value2[0] === "[") {
+          value2 = value2.slice(1);
+        }
+        if (value2[value2.length - 1] === "]") {
+          value2 = value2.slice(0, -1);
+        }
+        const [a, b, c] = value2.split(/[,，]/);
+        const override2 = required && value;
+        if (!zhankai.zhankaikuan || override || override2) {
+          zhankai.zhankaikuan = a || "";
+        }
+        if (!zhankai.zhankaigao || override || override2) {
+          zhankai.zhankaigao = b || "";
+        }
+        if (!zhankai.shuliang || override || override2) {
+          zhankai.shuliang = c || "";
+        }
+      }
+    } else {
+      let intersectionKey = null;
+      for (const k of keysOf(intersectionKeysTranslate)) {
+        if (key === intersectionKeysTranslate[k]) {
+          intersectionKey = k;
+          break;
+        }
+      }
+      if (intersectionKey) {
+        if (remove) {
+          data[intersectionKey] = [];
+          if (intersectionKey === "zhidingweizhipaokeng") {
+            delete data.info.刨坑深度;
           }
         }
       }
@@ -246,5 +309,17 @@ export const setCadData = (data: CadData, yaoqiuItems: Cad数据要求Item[]) =>
     } else {
       dataAny[key] = "";
     }
+  }
+
+  const item = yaoqiuItems.find((v) => v.key === "线属性");
+  if (!item?.reserve) {
+    data.entities.forEach((e) => {
+      if (e instanceof CadLineLike) {
+        e.mingzi = "";
+        e.mingzi2 = "";
+        e.gongshi = "";
+        e.guanlianbianhuagongshi = "";
+      }
+    });
   }
 };

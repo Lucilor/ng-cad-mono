@@ -16,6 +16,7 @@ import {CalcService} from "@services/calc.service";
 import {isMrbcjfzInfoEmpty1} from "@views/mrbcjfz/mrbcjfz.utils";
 import {matchConditions} from "@views/suanliao/suanliao.utils";
 import {cloneDeep, difference, intersection, isEmpty, isEqual, union} from "lodash";
+import md5 from "md5";
 import {openDrawCadDialog} from "../draw-cad/draw-cad.component";
 import {
   CalcZxpjResult,
@@ -50,7 +51,8 @@ export const getTestData = () => {
     noValidateCads: false,
     readonly: false,
     lingsanOptions: {},
-    lingsanCadType: ""
+    lingsanCadType: "",
+    gongshis: []
   };
   return data;
 };
@@ -921,4 +923,21 @@ export const getFromulasFromString = (str: string | undefined | null): Formulas 
     }
   }
   return result;
+};
+
+export const step3FetchData = async (
+  http: CadDataService,
+  lingsanOptions?: ZixuanpeijianInput["lingsanOptions"] | null,
+  noCache = false
+) => {
+  let responseData: {cads: CadData[]} | null = null;
+  const {getAll, useTypePrefix, xinghao} = lingsanOptions || {};
+  const cacheKey = "_lingsanCadsCache_" + md5(JSON.stringify({getAll, useTypePrefix, xinghao}));
+  if (noCache || !(window as any)[cacheKey]) {
+    responseData = await http.getData("ngcad/getLingsanCads", {getAll, useTypePrefix, xinghao});
+    (window as any)[cacheKey] = responseData;
+  } else {
+    responseData = (window as any)[cacheKey];
+  }
+  return responseData;
 };

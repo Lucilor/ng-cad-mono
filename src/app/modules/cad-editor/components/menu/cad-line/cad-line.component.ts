@@ -126,7 +126,7 @@ export class CadLineComponent extends Subscribed() implements OnInit, AfterViewI
         this.colorBg = "white";
       }
       this.colorValue = value;
-    } catch (error) {
+    } catch {
       this.colorValue = "black";
       this.colorBg = "white";
     }
@@ -562,7 +562,6 @@ export class CadLineComponent extends Subscribed() implements OnInit, AfterViewI
     return result;
   }
 
-  // eslint-disable-next-line @typescript-eslint/member-ordering
   setLineText = debounce((event: InputEvent | MatSelectChange | Event, field: string, i?: number) => {
     let value: number | string = "";
     if (event instanceof MatSelectChange) {

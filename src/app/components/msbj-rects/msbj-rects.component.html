@@ -1,6 +1,6 @@
 <div #rectOuter class="flex-110" (click)="setCurrRectInfo(null)">
   <div class="rects">
-    @for (info of rectInfosRelative; track info) {
+    @for (info of rectInfosRelative; track $index) {
       <div
         [id]="info.raw.vid"
         class="rect flex-row"

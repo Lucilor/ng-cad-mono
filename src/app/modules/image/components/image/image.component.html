@@ -21,12 +21,13 @@
     <img
       [src]="currSrc"
       [class.hidden]="loading() || error()"
+      [style.object-fit]="objectFit()"
       (wheel)="onWheel($event)"
       (pointerdown)="onPointerDown($event)"
       (pointermove)="onPointerMove($event)"
       (pointerup)="onPointerUp($event)"
-      (load)="onLoad()"
-      (error)="onError()"
+      (load)="onLoad($event)"
+      (error)="onError($event)"
     />
   } @else {
     <img

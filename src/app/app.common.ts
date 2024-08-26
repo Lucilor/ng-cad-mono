@@ -10,15 +10,19 @@ declare global {
     batchCheck(data: ObjectOf<any>[]): ObjectOf<string[]>;
   }
 }
+declare module "csstype" {
+  interface Properties {
+    [key: string]: any;
+  }
+}
 export const remoteHost = "https://www.let888.cn" as const;
 export const remoteFilePath = `${remoteHost}/filepath`;
 
-const addJs = (name: string) => {
+export const addJs = (name: string) => {
   const script = document.createElement("script");
   script.src = `${remoteHost}/static/js/${name}.js?${new Date().getTime()}`;
   document.head.append(script);
 };
-addJs("batchUploadChecker");
 addJs("node2rect");
 
 export const projectName = "NgCad2";
@@ -142,7 +146,7 @@ export const replaceRemoteHost = (urlStr: string) => {
   let url: URL;
   try {
     url = new URL(urlStr);
-  } catch (error) {
+  } catch {
     return urlStr;
   }
   const remoteUrl = new URL(remoteHost);
@@ -155,19 +159,26 @@ export const replaceRemoteHost = (urlStr: string) => {
 export interface XiaodaohangStructure {
   mingzi: string;
   table: string;
+  gongneng: {jiegou: XiaodaohangColumn[]};
+}
+export interface XiaodaohangColumn {
+  field: string;
+  ch: string;
+  datatype: string;
+  guanlianTable?: string;
 }
 
 export const filePathUrl = `${origin}/filepath`;
 
-export const getFilepathUrl = (url: string | undefined | null, opts?: {prefix?: string; suffix?: string}) => {
+export const getFilepathUrl = (url: string | undefined | null, opts?: {prefix?: string; suffix?: string; remote?: boolean}) => {
   if (!url) {
     return "";
   }
   if (url.startsWith("http")) {
     return url;
   }
-  const {prefix, suffix} = opts || {};
-  let result = `${filePathUrl}/${url}`;
+  const {prefix, suffix, remote} = opts || {};
+  let result = `${remote ? remoteFilePath : filePathUrl}/${url}`;
   if (prefix || suffix) {
     const strs = url.split("/");
     if (strs.length > 0) {
@@ -212,17 +223,21 @@ export const getBooleanStr = (value: boolean) => {
   return value ? "是" : "否";
 };
 
-export const getCopyName = (names: string[], name: string) => {
-  if (!names.includes(name)) {
+export const getNameWithSuffix = (names: string[], name: string, suffix: string, startNum: number) => {
+  if (suffix && !names.includes(name)) {
     return name;
   }
-  let i = 0;
-  const getSuffix = () => "_复制" + (i === 0 ? "" : i.toString());
-  while (names.includes(name + getSuffix())) {
+  let i = startNum;
+  const getSuffix = () => suffix + (i === 0 ? "" : i.toString());
+  let suffix2 = getSuffix();
+  while (names.includes(name + suffix2)) {
+    suffix2 = getSuffix();
     i++;
   }
-  return name + getSuffix();
+  return name + suffix2;
 };
+export const getInsertName = (names: string[], name: string) => getNameWithSuffix(names, name, "", 1);
+export const getCopyName = (names: string[], name: string) => getNameWithSuffix(names, name, "_复制", 0);
 
 export const getPdfInfo = (others?: TDocumentInformation): TDocumentInformation => {
   const now = new Date();
@@ -242,7 +257,7 @@ export const getArrayString = (value: any, separator: string) => {
   if (Array.isArray(value)) {
     return value.join(separator);
   } else {
-    return value;
+    return "";
   }
 };
 export const getObjectString = (value: any, separator: string, separatorKv: string) => {
@@ -267,4 +282,41 @@ export const getValueString = (value: any, separator = ",", separatorKv = ":") =
   } else {
     return String(value);
   }
+};
+
+export interface KeyEventItem {
+  key: string;
+  ctrl?: boolean;
+  shift?: boolean;
+  alt?: boolean;
+  action: () => void;
+}
+export const onKeyEvent = (event: KeyboardEvent, items: KeyEventItem[]) => {
+  for (const item of items) {
+    const {key, ctrl, shift, alt, action: callback} = item;
+    if (ctrl && !event.ctrlKey) {
+      continue;
+    }
+    if (shift && !event.shiftKey) {
+      continue;
+    }
+    if (alt && !event.altKey) {
+      continue;
+    }
+    if (event.key.toLowerCase() === key.toLowerCase()) {
+      callback();
+      event.preventDefault();
+      return;
+    }
+  }
+};
+
+export const getArray = <T>(validators: T | T[] | null | undefined) => {
+  if (validators === null || validators === undefined) {
+    return [];
+  }
+  if (Array.isArray(validators)) {
+    return validators;
+  }
+  return [validators];
 };

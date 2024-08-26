@@ -1,0 +1,28 @@
+<div class="toolbar">
+  @for (info of queryInputInfos(); track $index) {
+    <app-input [info]="info"></app-input>
+  }
+  <button mat-raised-button color="primary" (click)="query()">查询数据</button>
+  @if (!production) {
+    <button mat-raised-button color="primary" (click)="clearCadImgs()">清空CAD图片</button>
+  }
+</div>
+@if (queriesCountTexts(); as texts) {
+  <div class="toolbar">
+    @for (text of texts; track $index) {
+      @if ($index > 0) {
+        <mat-divider vertical></mat-divider>
+      }
+      <div>{{ text }}</div>
+    }
+  </div>
+}
+@if (refrehInputInfos(); as infos) {
+  <div class="toolbar">
+    @for (info of infos; track $index) {
+      <app-input [info]="info"></app-input>
+    }
+    <button mat-raised-button color="primary" (click)="start()">开始刷新</button>
+  </div>
+}
+<app-progress-bar [progress]="progress()" [status]="status()" [msg]="msg()"></app-progress-bar>

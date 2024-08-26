@@ -1,14 +1,13 @@
+import {ObjectOf} from "@lucilor/utils";
 import {HoutaiCad, TableDataBase} from "@modules/http/services/cad-data.service.types";
 
-export interface TongyongshujuInput {}
+export type TongyongshujuInput = ObjectOf<never>;
 
-export interface TongyongshujuOutput {}
+export type TongyongshujuOutput = ObjectOf<never>;
 
 export interface TongyongshujuData extends TableDataBase {
   bangzhuwendang: string;
-  cadmingziyaoqiu: string;
   cadshaixuanyaoqiu: string;
-  cadxuanxiangyaoqiu: string;
   cadyaoqiu: string;
   xiaodaohang: string;
   xiaodaohang_id: number;

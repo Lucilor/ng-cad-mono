@@ -71,7 +71,7 @@
         </div>
       }
     </div>
-    <app-progress-bar [progressBar]="progressBar" [status]="progressBarStatus" [msg]="msg"></app-progress-bar>
+    <app-progress-bar [progress]="progressBar.progress" [status]="progressBarStatus" [msg]="msg"></app-progress-bar>
 
     <div class="toolbar">
       <div class="spinner-container">
@@ -81,14 +81,21 @@
       <button mat-raised-button (click)="downloadBatchCheckData()" [disabled]="!batchCheckData || !cadsParsed">下载json数据</button>
     </div>
     <div class="cads">
-      @for (cad of cads; track cad) {
+      @for (cad of cads; track $index) {
         @if (cad.errors.length > 0) {
           <div class="cad">
             <div>名字: {{ cad.data.name }}</div>
             <div>唯一码: {{ cad.data.info["唯一码"] }}</div>
             <ul>
-              @for (error of cad.errors; track error) {
-                <li class="error" [innerHtml]="error"></li>
+              @for (error of cad.errors; track $index) {
+                @if (isString(error)) {
+                  <li class="error" [innerHtml]="error"></li>
+                } @else {
+                  <li class="error">
+                    <span [innerHtml]="error.text"></span>
+                    <span class="super link" [matTooltip]="error.detail" (click)="alertError(error)">?</span>
+                  </li>
+                }
               }
             </ul>
           </div>

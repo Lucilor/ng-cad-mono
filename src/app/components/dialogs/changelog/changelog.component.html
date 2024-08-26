@@ -1,6 +1,7 @@
 <div class="toolbar">
   <button mat-raised-button color="primary" (click)="close()">关闭</button>
   <button mat-raised-button color="primary" (click)="openCommits()">查看详细<mat-icon>open_in_new</mat-icon></button>
+  <button mat-raised-button color="primary" (click)="toggleEnvBeta()">切换到{{ env.beta ? "正式" : "测试" }}版</button>
 </div>
 
 <ng-scrollbar>
@@ -39,6 +40,7 @@
 <ng-template #updateTimeTemp>
   <mat-divider></mat-divider>
   <div class="time">更新时间：{{ getTitle(updateTime, true) }}</div>
+  <div class="time">当前分支：{{ branch }}</div>
   <mat-divider></mat-divider>
 </ng-template>
 

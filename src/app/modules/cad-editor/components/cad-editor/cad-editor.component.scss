@@ -111,10 +111,6 @@
     margin: 3px !important;
     flex: 1 1 0;
   }
-
-  .mat-mdc-tab-body-wrapper {
-    flex: 1 1 0;
-  }
 }
 
 .menu-icon {
@@ -147,4 +143,14 @@
   padding: 5px;
   border-radius: 8px;
   opacity: 0.8;
+}
+
+.menu-search {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: white;
+  z-index: var(--top-z-index);
+  padding: 5px;
+  box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.2);
 }

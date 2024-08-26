@@ -25,9 +25,11 @@
       <button mat-raised-button [color]="isSuanliaoCadReversed ? 'primary' : 'accent'" (click)="isSuanliaoCadReversed = false">降序</button>
       <div class="flex-110"></div>
       <div class="toolbar">
-        <button mat-mini-fab color="primary" (click)="showMenuRight.set(!showMenuRight())">
-          <mat-icon>{{ showMenuRight() ? "navigate_next" : "navigate_before" }}</mat-icon>
-        </button>
+        @if (data.isKailiao) {
+          <button mat-mini-fab color="primary" (click)="showMenuRight.set(!showMenuRight())">
+            <mat-icon>{{ showMenuRight() ? "navigate_next" : "navigate_before" }}</mat-icon>
+          </button>
+        }
       </div>
     </div>
     <ng-scrollbar #cadsScrollbar class="enable-x">
@@ -36,12 +38,13 @@
           <app-cad-item
             [cad]="cad"
             [buttons]="cadItemButtons"
-            [yaoqiu]="cadShujuyaoqiu"
+            [yaoqiu]="getCadYaoqiu(cad)"
+            [gongshis]="data.data['算料公式']"
             [mubanExtraData]="mubanExtraData"
             [openCadOptions]="openCadOptions"
             [customInfo]="{index: getSuanliaoCadIndex(i)}"
             [showMuban]="data.isKailiao"
-            [validators]="{zhankai: true}"
+            [validators]="{zhankai: true, name: cadNameValidator}"
             [class.hidden]="hiddenSuanliaoCads.includes(getSuanliaoCadIndex(i))"
           ></app-cad-item>
         }

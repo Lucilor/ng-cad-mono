@@ -170,7 +170,6 @@ export class CadDimensionComponent extends Subscribed() implements OnInit, OnDes
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/member-ordering
   setDimensionName = debounce((event: Event, dimension: CadDimension) => {
     const str = (event.target as HTMLInputElement).value;
     if (reservedDimNames.includes(str)) {

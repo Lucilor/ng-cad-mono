@@ -2,6 +2,7 @@ import {Validators} from "@angular/forms";
 import {MatDialog} from "@angular/material/dialog";
 import {Cad数据要求Item} from "@app/cad/cad-shujuyaoqiu";
 import {cadOptions} from "@app/cad/options";
+import {算料公式} from "@app/components/lurushuju/xinghao-data";
 import {openCadListDialog} from "@components/dialogs/cad-list/cad-list.component";
 import {environment} from "@env";
 import {CadData, CadZhankai} from "@lucilor/cad-viewer";
@@ -65,14 +66,15 @@ export const cadFields = {
   拉码碰撞判断: "拉码碰撞判断"
 } as const;
 
-const getData = (data: CadData | (() => CadData)) => (typeof data === "function" ? data() : data);
+export const getData = (data: CadData | (() => CadData)) => (typeof data === "function" ? data() : data);
 
 export const getCadInfoInputs = (
   keys: string[],
   data: CadData | (() => CadData),
   dialog: MatDialog,
   status: AppStatusService,
-  parseOptionString: boolean
+  parseOptionString: boolean,
+  gongshis?: 算料公式[] | null | undefined
 ) => {
   const result: InputInfo<CadData>[] = [];
   const attrGetter =
@@ -80,6 +82,7 @@ export const getCadInfoInputs = (
     () => {
       return getData(data)[key];
     };
+  const gongshiOptions = status.getGongshiOptions(gongshis);
   for (const key of keys) {
     if (result.some((v) => v.label === key)) {
       continue;
@@ -150,7 +153,8 @@ export const getCadInfoInputs = (
           model: {data, key: cadFields[key]},
           optionsDialog: {},
           optionMultiple: true,
-          parseString: parseOptionString
+          parseString: parseOptionString,
+          isXuanxiang: key === "选项"
         };
         break;
       case "条件":
@@ -187,13 +191,14 @@ export const getCadInfoInputs = (
         info = {type: "string", label: key, model: {data: attrGetter("info"), key}};
         break;
       case "激光开料是否翻转":
+      case "激光开料打标":
         info = {type: "boolean", label: key, model: {data: attrGetter("info"), key}};
         break;
       case "自定义属性":
         info = {
           type: "string",
           label: key,
-          disabled: true,
+          readonly: true,
           suffixIcons: [
             {
               name: "list",
@@ -258,8 +263,22 @@ export const getCadInfoInputs = (
             label: key,
             groupStyle: {display: "flex"},
             infos: [
-              {type: "string", label: "宽", style, model: {data: getter, key: "zhankaikuan"}, validators: Validators.required},
-              {type: "string", label: "高", style, model: {data: getter, key: "zhankaigao"}, validators: Validators.required},
+              {
+                type: "string",
+                label: "宽",
+                style,
+                options: gongshiOptions,
+                model: {data: getter, key: "zhankaikuan"},
+                validators: Validators.required
+              },
+              {
+                type: "string",
+                label: "高",
+                style,
+                options: gongshiOptions,
+                model: {data: getter, key: "zhankaigao"},
+                validators: Validators.required
+              },
               {type: "string", label: "数量", style, model: {data: getter, key: "shuliang"}, validators: Validators.required}
             ]
           };
@@ -298,10 +317,12 @@ export const getCadInfoInputs = (
 
 export const getCadInfoInputs2 = (
   items: Cad数据要求Item[] | null | undefined,
+  items2: Cad数据要求Item[] | null | undefined,
   data: CadData | (() => CadData),
   dialog: MatDialog,
   status: AppStatusService,
-  parseOptionString: boolean
+  parseOptionString: boolean,
+  gongshis: 算料公式[] | null | undefined
 ) => {
   const result: InputInfo[] = [];
   for (const {key, value, cadKey, key2, readonly, required} of items || []) {
@@ -315,7 +336,17 @@ export const getCadInfoInputs2 = (
         optionsDialog: {optionKey: key2, openInNewTab: true}
       };
     } else {
-      info = getCadInfoInputs([key], data, dialog, status, parseOptionString)[0];
+      info = getCadInfoInputs([key], data, dialog, status, parseOptionString, gongshis)[0];
+      if (key === "选项" && info.type === "object") {
+        const requiredOptionItems = items2?.filter((v) => v.key === "选项" && v.key2 && v.required);
+        const requiredKeys: string[] = [];
+        for (const {key2} of requiredOptionItems || []) {
+          if (key2) {
+            requiredKeys.push(key2);
+          }
+        }
+        info.requiredKeys = requiredKeys;
+      }
     }
     if (!info) {
       info = {type: "string", label: key + "（未实现）", disabled: true};

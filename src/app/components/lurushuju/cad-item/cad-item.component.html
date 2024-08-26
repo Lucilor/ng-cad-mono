@@ -8,7 +8,9 @@
     ></mat-checkbox>
   }
   <div class="flex-110 flex-row link" style="justify-content: center; align-items: center" (click)="selectable?.onChange(this)">
-    <button mat-button appClickStop [onClickStopped]="onClickStopped" (click)="editCadForm()">{{ cadName }}</button>
+    <button mat-button appClickStop [class.error]="!!errorMsgs['名字']" [onClickStopped]="onClickStopped" (click)="editCadForm()">
+      {{ cadName }}
+    </button>
     <button mat-icon-button color="primary" appClickStop [onClickStopped]="onClickStopped" (click)="copyName()">
       <mat-icon>content_copy</mat-icon>
     </button>
@@ -35,7 +37,7 @@
           } @else {
             <app-cad-image
               class="link"
-              id=""
+              [id]="''"
               [data]="cadData"
               [width]="cadWidth"
               [height]="cadHeight"

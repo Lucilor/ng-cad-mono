@@ -1,10 +1,6 @@
 <div class="toolbar right">
-  @if (isEditingFenlei) {
-    <button mat-raised-button color="primary" (click)="setCadsFenlei()">转移到分类</button>
-  } @else {
-    <button mat-raised-button color="primary" (click)="submit()">{{ summitBtnText }}</button>
-    <button mat-raised-button color="primary" (click)="cancel()">取消</button>
-  }
+  <button mat-raised-button color="primary" (click)="submit()">{{ summitBtnText }}</button>
+  <button mat-raised-button color="primary" (click)="cancel()">取消</button>
 </div>
 
 <div class="flex-row flex-110 scrollbar-container">
@@ -160,28 +156,82 @@
     }
     @case (3) {
       <div class="step-3 flex-row flex-110">
-        <ng-scrollbar #lingsanTypesScrollbar style="flex: 0 0 auto">
-          <div class="toolbar vertical">
-            @for (info of lingsanCadInfos; track $index) {
-              @if (!info.hidden) {
-                <button
-                  #typesButton
-                  mat-raised-button
-                  [color]="info.type === lingsanCadType ? 'accent' : 'primary'"
-                  (click)="setlingsanCadType(info.type)"
-                >
-                  {{ info.type }}
-                </button>
-              }
+        <div class="flex-column">
+          <div class="toolbar">
+            <app-input [info]="lingsanTypesSearchInput"></app-input>
+            <button
+              mat-stroked-button
+              [color]="lingsanTypesEditMode ? 'accent' : 'primary'"
+              (click)="lingsanTypesEditMode = !lingsanTypesEditMode"
+            >
+              开启编辑
+            </button>
+            @if (lingsanTypesEditMode) {
+              <button mat-stroked-button color="primary" (click)="addLingsanCadType()">添加1级</button>
             }
           </div>
-        </ng-scrollbar>
+          <ng-template #nodeTitle [appTypedTemplate]="{$implicit: lingsanTypesDataSource.data[0]}" let-node>
+            {{ node.label || node.name }}
+            @if (lingsanTypesShowCount && !lingsanTypesEditMode && (!production || searchLingsanValue)) {
+              ({{ node.cadCount }}个)
+            }
+            @if (lingsanTypesEditMode) {
+              (排序{{ node.order }})
+            }
+          </ng-template>
+          <ng-template #nodeEdit [appTypedTemplate]="{$implicit: lingsanTypesDataSource.data[0]}" let-node>
+            @if (lingsanTypesEditMode && !isVirtualNode(node)) {
+              <div class="flex-110 toolbar right compact">
+                <button mat-button color="primary" (click)="addLingsanCadType(node)">添加{{ node.level + 2 }}级</button>
+                <button mat-button color="primary" (click)="editLingsanCadType(node)">编辑</button>
+                <button mat-button color="primary" (click)="removeLingsanCadType(node)">删除</button>
+              </div>
+            }
+          </ng-template>
+          <ng-scrollbar #lingsanTypesScrollbar style="flex: 0 0 auto">
+            <mat-tree
+              #lingsanTypesTree
+              [dataSource]="lingsanTypesDataSource"
+              [treeControl]="lingsanTypesTreeControl"
+              class="lingsan-types-tree"
+            >
+              <mat-tree-node *matTreeNodeDef="let node" [class.hidden]="node.hidden || node.hidden2">
+                <div class="toolbar">
+                  <button
+                    mat-button
+                    [color]="node.name === lingsanCadType ? 'primary' : ''"
+                    [attr.data-id]="node.id"
+                    (click)="setLingsanCadType(node.name)"
+                    matTreeNodeToggle
+                  >
+                    <ng-container *ngTemplateOutlet="nodeTitle; context: {$implicit: node}"></ng-container>
+                  </button>
+                  <ng-container *ngTemplateOutlet="nodeEdit; context: {$implicit: node}"></ng-container>
+                </div>
+              </mat-tree-node>
+              <mat-nested-tree-node *matTreeNodeDef="let node; when: hasChild" [class.hidden]="node.hidden || node.hidden2">
+                <div class="toolbar">
+                  <button mat-icon-button matTreeNodeToggle>
+                    <mat-icon class="mat-icon-rtl-mirror">
+                      {{ lingsanTypesTreeControl.isExpanded(node) ? "expand_more" : "chevron_right" }}
+                    </mat-icon>
+                  </button>
+                  <button mat-button matTreeNodeToggle [attr.data-id]="node.id">
+                    <ng-container *ngTemplateOutlet="nodeTitle; context: {$implicit: node}"></ng-container>
+                  </button>
+                  <ng-container *ngTemplateOutlet="nodeEdit; context: {$implicit: node}"></ng-container>
+                </div>
+                <div [class.hidden]="!lingsanTypesTreeControl.isExpanded(node)" role="group">
+                  <ng-container matTreeNodeOutlet></ng-container>
+                </div>
+              </mat-nested-tree-node>
+            </mat-tree>
+          </ng-scrollbar>
+        </div>
         <div class="flex-column flex-110">
           <div class="btn-group">
             <app-input [info]="lingsanCadsSearchInput" style="width: 100px; flex: 1 1 0"></app-input>
             <button mat-raised-button [color]="multiDeleting ? 'accent' : 'primary'" (click)="toggleMultiDeleting()">批量删除</button>
-            <button mat-raised-button [color]="isEditingFenlei ? 'accent' : 'primary'" (click)="editFenlei()">编辑配件分类</button>
-            <button mat-raised-button color="primary" (click)="sortFenlei()">编辑分类排序</button>
             @if (getCadYaoqiu()?.["有帮助文档"]) {
               <button mat-raised-button color="primary" (click)="getCadYaoqiu()?.['打开帮助文档']()">帮助文档</button>
             }
@@ -209,6 +259,7 @@
                         [buttons]="lingsanCadItemButtons"
                         [customInfo]="{index: i}"
                         [yaoqiu]="getCadYaoqiu()"
+                        [gongshis]="data?.gongshis"
                         [isOnline]="{isFetched: item.isFetched, afterFetch: afterFetch.bind(this)}"
                         [events]="{clickBlank: addLingsanItem.bind(this), clickAll: onLingsanItemClickAll.bind(this)}"
                         [selectable]="getLingsanItemSelectable(item)"

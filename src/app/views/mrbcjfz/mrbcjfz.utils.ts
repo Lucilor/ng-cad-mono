@@ -1,19 +1,12 @@
 import {ObjectOf} from "@lucilor/utils";
-import {InputInfo} from "@modules/input/components/input.types";
+import {InputInfo, InputInfoSelect, InputInfoString} from "@modules/input/components/input.types";
 import {difference, isEqual} from "lodash";
-import {
-  MrbcjfzCadInfo,
-  MrbcjfzHuajian,
-  MrbcjfzInfo,
-  MrbcjfzInfoShowItem,
-  mrbcjfzInfoShowItems,
-  mrbcjfzMsxzItems,
-  MrbcjfzXinghao
-} from "./mrbcjfz.types";
+import {CadData} from "packages/cad-viewer/lib";
+import {MrbcjfzHuajian, MrbcjfzInfo, MrbcjfzInfoShowItem, mrbcjfzInfoShowItems, mrbcjfzMsxzItems, MrbcjfzXinghao} from "./mrbcjfz.types";
 
 export class MrbcjfzXinghaoInfo {
   默认板材: ObjectOf<MrbcjfzInfo> = {};
-  inputInfos: ObjectOf<InputInfo[]> = {};
+  inputInfos: ObjectOf<InputInfo[][]> = {};
 
   constructor(
     public table: string,
@@ -21,7 +14,7 @@ export class MrbcjfzXinghaoInfo {
   ) {
     try {
       this.默认板材 = JSON.parse(raw.morenbancai || "");
-    } catch (error) {}
+    } catch {}
     this.update();
   }
 
@@ -61,94 +54,94 @@ export class MrbcjfzXinghaoInfo {
       if (!value.门扇使用限制 || !mrbcjfzMsxzItems.includes(value.门扇使用限制)) {
         value.门扇使用限制 = "无限制";
       }
-      this.inputInfos[key] = [
-        {
-          type: "string",
-          label: "板材分组别名",
-          model: {data: value, key: "板材分组别名"},
-          style: {flex: "20 20 0"},
-          validators: (control) => {
-            const val = String(control.value);
-            if (["p_luomatou", "p_luomazhu", "p_qianhoubankuanshi"].includes(this.table)) {
-              const data = this.默认板材[key];
-              if (!isMrbcjfzInfoEmpty1(key, data) && !val) {
-                return {required: true};
-              }
+      const 板材分组别名InputInfo: InputInfoString = {
+        type: "string",
+        label: "板材分组别名",
+        model: {data: value, key: "板材分组别名"},
+        style: {flex: "20 20 0"},
+        validators: (control) => {
+          const val = String(control.value);
+          if (["p_luomatou", "p_luomazhu", "p_qianhoubankuanshi"].includes(this.table)) {
+            const data = this.默认板材[key];
+            if (!isMrbcjfzInfoEmpty1(key, data) && !val) {
+              return {required: true};
             }
-            if (val) {
-              if (!/(板材|颜色)$/.test(val)) {
-                return {pattern: "必须以“板材”或“颜色”结尾"};
-              }
-              for (const key2 in this.默认板材) {
-                if (key2 !== key && this.默认板材[key2].板材分组别名 === val) {
-                  return {pattern: "不能重复"};
-                }
-              }
+          }
+          if (val) {
+            if (!/(板材|颜色)$/.test(val)) {
+              return {pattern: "必须以“板材”或“颜色”结尾"};
             }
-            return null;
-          },
-          onChange: () => {
             for (const key2 in this.默认板材) {
-              if (key2 !== key) {
-                const info2 = this.inputInfos[key2].find((v) => v.label === "板材分组别名");
-                if (info2) {
-                  info2.forceValidateNum = (info2.forceValidateNum || 0) + 1;
-                }
+              if (key2 !== key && this.默认板材[key2].板材分组别名 === val) {
+                return {pattern: "不能重复"};
               }
             }
           }
+          return null;
         },
-        {type: "boolean", label: "允许修改", model: {data: value, key: "允许修改"}, style: {flex: "8 8 0"}},
-        {
-          type: "boolean",
-          label: "独立变化",
-          model: {data: value, key: "独立变化"},
-          style: {flex: "8 8 0"},
-          readonly: key === "底框板材"
-        },
-        {
-          type: "select",
-          label: "显示内容",
-          options: showItemOptions.slice(),
-          value: 显示内容,
-          style: {flex: "16 16 0"},
-          onChange: (val: string) => {
-            switch (val) {
-              case "全都显示":
-                value.不显示 = false;
-                delete value.不显示内容;
-                break;
-              case "只显示颜色":
-                value.不显示 = true;
-                value.不显示内容 = ["材料", "厚度"];
-                break;
-              case "只显示颜色+结果不显示":
-                value.不显示 = true;
-                value.不显示内容 = ["材料", "厚度", "结果"];
-                break;
-              case "全不显示":
-                value.不显示 = true;
-                delete value.不显示内容;
-                break;
-              default:
-                console.error("未知的显示内容选项", val);
-            }
-            const info = this.inputInfos[key].find((v) => v.label === "显示内容");
-            if (info && info.style) {
-              info.style.opacity = value.不显示 ? "0.5" : "1";
+        onChange: () => {
+          for (const key2 in this.默认板材) {
+            if (key2 !== key) {
+              板材分组别名InputInfo.forceValidateNum = (板材分组别名InputInfo.forceValidateNum || 0) + 1;
             }
           }
-        },
-        {
-          type: "select",
-          label: "门扇使用限制",
-          options: mrbcjfzMsxzItems.slice(),
-          model: {data: value, key: "门扇使用限制"},
-          style: {flex: "12 12 0"}
         }
+      };
+      const 显示内容InputInfo: InputInfoSelect = {
+        type: "select",
+        label: "显示内容",
+        options: showItemOptions.slice(),
+        value: 显示内容,
+        style: {flex: "16 16 0"},
+        onChange: (val: string) => {
+          switch (val) {
+            case "全都显示":
+              value.不显示 = false;
+              delete value.不显示内容;
+              break;
+            case "只显示颜色":
+              value.不显示 = true;
+              value.不显示内容 = ["材料", "厚度"];
+              break;
+            case "只显示颜色+结果不显示":
+              value.不显示 = true;
+              value.不显示内容 = ["材料", "厚度", "结果"];
+              break;
+            case "全不显示":
+              value.不显示 = true;
+              delete value.不显示内容;
+              break;
+            default:
+              console.error("未知的显示内容选项", val);
+          }
+          if (显示内容InputInfo.style) {
+            显示内容InputInfo.style.opacity = value.不显示 ? "0.5" : "1";
+          }
+        }
+      };
+      this.inputInfos[key] = [
+        [板材分组别名InputInfo],
+        [
+          {type: "boolean", label: "允许修改", model: {data: value, key: "允许修改"}, style: {flex: "8 8 0"}},
+          {
+            type: "boolean",
+            label: "独立变化",
+            model: {data: value, key: "独立变化"},
+            style: {flex: "8 8 0"},
+            readonly: key === "底框板材"
+          },
+          显示内容InputInfo,
+          {
+            type: "select",
+            label: "门扇使用限制",
+            options: mrbcjfzMsxzItems.slice(),
+            model: {data: value, key: "门扇使用限制"},
+            style: {flex: "12 12 0"}
+          }
+        ]
       ];
       if (this.raw.编辑默认对应板材分组) {
-        this.inputInfos[key].push({
+        this.inputInfos[key][1].push({
           type: "select",
           label: "默认对应板材分组",
           model: {data: value, key: "默认对应板材分组"},
@@ -192,14 +185,15 @@ export const getMrbcjfzInfo = (source: Partial<MrbcjfzInfo> = {}): MrbcjfzInfo =
   ...source
 });
 
-export const filterCad = (info: MrbcjfzCadInfo) => {
-  const data = info.data;
-  if (data.gudingkailiaobancai || data.板材绑定选项) {
+export const filterCad = (data: CadData, options?: {skipTpyeCheck?: boolean}) => {
+  if (data.gudingkailiaobancai || data.板材绑定选项 || data.指定板材分组) {
     return false;
   }
-  const typeReg = /激光花|花件|示意图|装配示意图|特定企料|横截面示意图|纵截面示意图/;
-  if (typeReg.test(data.type) || typeReg.test(data.type2)) {
-    return false;
+  if (!options?.skipTpyeCheck) {
+    const typeReg = /激光花|花件|示意图|装配示意图|特定企料|横截面示意图|纵截面示意图/;
+    if (typeReg.test(data.type) || typeReg.test(data.type2)) {
+      return false;
+    }
   }
   if (data.options.花件 || Object.keys(data.options).some((v2) => v2.includes("压条"))) {
     return false;

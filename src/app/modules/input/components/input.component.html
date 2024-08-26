@@ -134,12 +134,12 @@
       }
       @if (!info.keysReadonly && keysOf(value)["length"] === 0) {
         <div>
-          <button mat-icon-button color="primary" (click)="objectAdd(value, '')">
+          <button mat-icon-button color="primary" (click)="objectAdd2(value, '')">
             <mat-icon>add_circle</mat-icon>
           </button>
         </div>
       }
-      @for (item of asObject(value) | keyvalue: returnZero; track item) {
+      @for (item of asObject(value) | keyvalue: returnZero; track i; let i = $index) {
         <div>
           <mat-form-field style="width: 30%" [class]="{empty: isEmpty(item.key)}">
             @if (info.keyLabel) {
@@ -151,15 +151,30 @@
               [errorStateMatcher]="getErrorStateMatcherKey(item.key)"
               [readonly]="info.readonly"
               [disabled]="info.disabled || false"
-              [autocomplete]="info.autocomplete"
+              [autocomplete]="info.autocomplete || ''"
               [value]="item.key"
               [name]="name + '-key'"
               (change)="changeObjectKey2(value, item.key, $event)"
+              (input)="onObjectKeyInput($event, i)"
               (blur)="onBlur()"
+              [matAutocomplete]="auto"
+              [matAutocompleteDisabled]="xuanxiangOptions.length < 1"
             />
+            <mat-autocomplete #auto="matAutocomplete" (optionSelected)="changeObjectKey2(value, item.key, $event.option.value)">
+              @for (option of (filteredXuanxiangOptions$ | async)?.[i]; track $index) {
+                <mat-option
+                  [value]="option.value"
+                  [matTooltip]="option.label === option.value ? option.label : option.label + '=' + option.value"
+                  [matTooltipPosition]="'right'"
+                  [disabled]="info.readonly || option.disabled"
+                >
+                  {{ option.label }}
+                </mat-option>
+              }
+            </mat-autocomplete>
             <mat-error>{{ getErrorMsgKey(item.key) }}</mat-error>
             @if (info.clearable) {
-              <button mat-icon-button matSuffix color="primary" (click)="changeObjectKey(value, item.key, '')">
+              <button mat-icon-button matSuffix color="primary" (click)="changeObjectKey2(value, item.key, '')">
                 <mat-icon>close</mat-icon>
               </button>
             }
@@ -179,7 +194,7 @@
               [name]="name + '-value'"
               (change)="changeObjectValue2(value, item.key, item.value)"
               (blur)="onBlur()"
-              (click)="onClick()"
+              (click)="onClick({key: item.key})"
             />
             <ng-container matSuffix>
               @if (optionsDialog) {
@@ -188,17 +203,19 @@
                 </button>
               }
               @if (!info.keysReadonly) {
-                <button mat-icon-button color="primary" (click)="objectAdd(value, item.key)">
+                <button mat-icon-button color="primary" (click)="objectAdd2(value, '', '')">
                   <mat-icon>add_circle</mat-icon>
                 </button>
-                <button mat-icon-button color="primary" (click)="objectRemove(value, item.key)">
-                  <mat-icon>remove_circle</mat-icon>
-                </button>
+                @if (!info.requiredKeys?.includes(item.key)) {
+                  <button mat-icon-button color="primary" (click)="objectRemove2(value, item.key)">
+                    <mat-icon>remove_circle</mat-icon>
+                  </button>
+                }
               }
               <ng-container matSuffix [ngTemplateOutlet]="suffixIconsTmp"></ng-container>
               <ng-container matTextSuffix [ngTemplateOutlet]="suffixTextsTmp"></ng-container>
               @if (info.clearable) {
-                <button mat-icon-button color="primary" (click)="changeObjectValue(value, item.key, '')">
+                <button mat-icon-button color="primary" (click)="changeObjectValue2(value, item.key, '')">
                   <mat-icon>close</mat-icon>
                 </button>
               }
@@ -267,36 +284,43 @@
     </div>
   }
   @case ("boolean") {
-    <mat-form-field [class]="{empty: isEmpty(value)}">
-      @if (info.label) {
-        <mat-label>{{ info.label }}</mat-label>
-      }
-      @if (info.hint) {
-        <mat-hint>{{ hint }}</mat-hint>
-      }
-      @if (info.radio) {
-        <input matInput hidden />
-        <mat-radio-group [(ngModel)]="value" (change)="onChange()">
-          <mat-radio-button [value]="true" [disabled]="info.readonly">是</mat-radio-button>
-          <mat-radio-button [value]="false" [disabled]="info.readonly">否</mat-radio-button>
-        </mat-radio-group>
-      } @else {
-        <mat-select
-          [errorStateMatcher]="getErrorStateMatcher()"
-          [disabled]="info.disabled || false"
-          [(ngModel)]="value"
-          [name]="name"
-          (selectionChange)="onChange()"
-          [placeholder]="info.placeholder || ''"
-        >
-          <ng-scrollbar matSelectViewport>
-            <mat-option [value]="true" [disabled]="info.readonly">是</mat-option>
-            <mat-option [value]="false" [disabled]="info.readonly">否</mat-option>
-          </ng-scrollbar>
-        </mat-select>
-      }
-      <mat-error>{{ getErrorMsg() }}</mat-error>
-    </mat-form-field>
+    @if (info.appearance === "switch") {
+      <div class="switch-container" [class]="{empty: isEmpty(value)}">
+        <div>{{ info.label }}</div>
+        <mat-slide-toggle [(ngModel)]="value" (change)="onChange()"></mat-slide-toggle>
+      </div>
+    } @else {
+      <mat-form-field [class]="{empty: isEmpty(value)}">
+        @if (info.label) {
+          <mat-label>{{ info.label }}</mat-label>
+        }
+        @if (info.hint) {
+          <mat-hint>{{ hint }}</mat-hint>
+        }
+        @if (info.appearance === "radio") {
+          <input matInput hidden />
+          <mat-radio-group [(ngModel)]="value" (change)="onChange()">
+            <mat-radio-button [value]="true" [disabled]="info.readonly">是</mat-radio-button>
+            <mat-radio-button [value]="false" [disabled]="info.readonly">否</mat-radio-button>
+          </mat-radio-group>
+        } @else {
+          <mat-select
+            [errorStateMatcher]="getErrorStateMatcher()"
+            [disabled]="info.disabled || false"
+            [(ngModel)]="value"
+            [name]="name"
+            (selectionChange)="onChange()"
+            [placeholder]="info.placeholder || ''"
+          >
+            <ng-scrollbar matSelectViewport>
+              <mat-option [value]="true" [disabled]="info.readonly">是</mat-option>
+              <mat-option [value]="false" [disabled]="info.readonly">否</mat-option>
+            </ng-scrollbar>
+          </mat-select>
+        }
+        <mat-error>{{ getErrorMsg() }}</mat-error>
+      </mat-form-field>
+    }
   }
   @case ("select") {
     <mat-form-field [class]="{empty: isEmpty(value)}">
@@ -480,8 +504,8 @@
       }
       <input
         matInput
-        [value]="colorStr"
-        [style]="{color: colorStr, backgroundColor: colorBg}"
+        [value]="colorStr2"
+        [style]="{color: colorStr3, backgroundColor: colorBg}"
         [matMenuTriggerFor]="editable ? colorPicker : null"
         [errorStateMatcher]="getErrorStateMatcher()"
         readonly
@@ -622,7 +646,7 @@
           <span>{{ info.label }}</span>
         </div>
         <div class="group" [style]="info.groupStyle">
-          @for (info2 of info.infos; track info2) {
+          @for (info2 of info.infos; track $index) {
             <app-input [info]="info2"></app-input>
           }
         </div>
@@ -630,7 +654,7 @@
       </div>
     } @else {
       <div class="group" [style]="info.groupStyle">
-        @for (info2 of info.infos; track info2) {
+        @for (info2 of info.infos; track $index) {
           <app-input [info]="info2"></app-input>
         }
       </div>

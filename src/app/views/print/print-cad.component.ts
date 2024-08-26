@@ -76,6 +76,7 @@ export class PrintCadComponent implements AfterViewInit, OnDestroy {
   toolbarVisible = true;
   downloadUrl: string | null = null;
   mode: "edit" | "print" = "print";
+  showSavePdf = false;
   printParams: Required<PrintCadsParams> = {
     cads: [],
     projectConfig: this.status.projectConfig,
@@ -154,7 +155,9 @@ export class PrintCadComponent implements AfterViewInit, OnDestroy {
     private spinner: SpinnerService,
     private dialog: MatDialog,
     private status: AppStatusService
-  ) {}
+  ) {
+    this.showSavePdf = this.status.projectConfig.getBoolean("算料单有保存PDF文件功能");
+  }
 
   async ngAfterViewInit() {
     await timeout(0);

@@ -38,7 +38,7 @@ export class CadMtextComponent extends Subscribed() implements OnInit, OnDestroy
         this.colorBg = "white";
       }
       this.colorValue = value;
-    } catch (error) {
+    } catch {
       this.colorValue = "black";
       this.colorBg = "white";
     }
@@ -55,6 +55,9 @@ export class CadMtextComponent extends Subscribed() implements OnInit, OnDestroy
     cad.on("entitiesunselect", this._updateSelected);
     cad.on("entitiesadd", this._updateSelected);
     cad.on("entitiesremove", this._updateSelected);
+    this.subscribe(this.status.openCad$, () => {
+      this._updateSelected();
+    });
   }
 
   ngOnDestroy() {
@@ -77,7 +80,10 @@ export class CadMtextComponent extends Subscribed() implements OnInit, OnDestroy
         value: this.getInfo("text"),
         onInput: debounce((val) => {
           this.setInfo("text", val);
-        }, 500)
+        }, 500),
+        onChange: (val) => {
+          this.setInfo("text", val);
+        }
       },
       {
         type: "string",

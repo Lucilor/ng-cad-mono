@@ -30,7 +30,7 @@ import {MessageService} from "@modules/message/services/message.service";
 import {SpinnerComponent} from "@modules/spinner/components/spinner/spinner.component";
 import {AppStatusService} from "@services/app-status.service";
 import {Properties} from "csstype";
-import {isEmpty, union, uniqueId} from "lodash";
+import {isEmpty, uniqueId} from "lodash";
 import {NgScrollbar} from "ngx-scrollbar";
 import {BehaviorSubject, first, lastValueFrom} from "rxjs";
 import {ClickStopPropagationDirective} from "../../modules/directives/click-stop-propagation.directive";
@@ -95,7 +95,6 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
   huajians: ObjectOf<MrbcjfzHuajianInfo> = {};
   qiliaos: ObjectOf<MrbcjfzQiliaoInfo> = {};
   bancaiKeys: string[] = [];
-  bancaiKeysNonClear: string[] = [];
   bancaiKeysRequired: string[] = [];
   bancaiList: BancaiList[] = [];
   activeBancaiKey: string | null = null;
@@ -183,13 +182,10 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
       } else {
         bancaiListData = await this.http.getBancaiList(9, {spinner: this.loaderId});
       }
-      this.xinghao.默认板材 = data.morenbancai;
-      this.xinghao.update();
-      this.xiaodaohangStructure = {mingzi: "型号", table: "p_xinghao"};
+      this.xiaodaohangStructure = {mingzi: "型号", table: "p_xinghao", gongneng: {jiegou: []}};
       if (bancaiListData) {
         this.bancaiList = bancaiListData.bancais;
         this.bancaiKeys = bancaiListData.bancaiKeys;
-        this.bancaiKeysNonClear = bancaiListData.bancaiKeysNonClear;
         this.bancaiKeysRequired = bancaiListData.bancaiKeysRequired;
       }
       const cads = data.cads || [];
@@ -211,6 +207,8 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
         info.花件 = info.花件.filter((v) => huajianIds1.includes(v));
         huajianIds2.push(...info.花件);
       }
+      this.xinghao.默认板材 = data.morenbancai;
+      this.xinghao.update();
       this.cads = {};
       for (const cad of cads) {
         const info: MrbcjfzCadInfo = {id: cad.id, data: cad};
@@ -233,7 +231,6 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
       if (data) {
         this.xinghao = new MrbcjfzXinghaoInfo(this.table, data.xinghao);
         this.bancaiKeys = data.bancaiKeys;
-        this.bancaiKeysNonClear = union(data.bancaiKeysNonClear, data.bancaiKeysRequired);
         this.bancaiKeysRequired = data.bancaiKeysRequired;
         this.xiaodaohangStructure = data.xiaodaohangStructure;
         this.cads = {};
@@ -241,7 +238,7 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
         data.cads.forEach((v) => {
           const cadData = new CadData(v);
           const item: MrbcjfzCadInfo = {data: cadData, id: cadData.id};
-          if (filterCad(item)) {
+          if (filterCad(item.data)) {
             this.cads[item.id] = item;
           } else {
             cadsToRemove.push(item);
@@ -292,7 +289,6 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
             }
             info.花件.push(huajianId);
           }
-          this.justifyBancai(bancaiKey, info);
         }
         const errorMsgs: string[] = [];
         if (cadsRemoved.length > 0) {
@@ -344,7 +340,9 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
           cailiaoList: info.可选材料,
           houduList: info.可选厚度
         },
-        bancaiList: this.bancaiList
+        bancaiList: this.bancaiList,
+        xinghao: this.xinghao,
+        key
       }
     });
     if (result) {
@@ -381,15 +379,6 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
       this.selectBancaiKey(this.activeBancaiKey);
     }
     this.updateListItems();
-  }
-
-  justifyBancai(key: string, info: MrbcjfzInfo) {
-    if (isMrbcjfzInfoEmpty1(key, info) && !this.bancaiKeysNonClear.includes(key)) {
-      emptyMrbcjfzInfoValues(key, info, ["默认开料材料", "默认开料板材", "默认开料板材厚度"]);
-    }
-    if (isMrbcjfzInfoEmpty2(key, info)) {
-      emptyMrbcjfzInfoValues(key, info, ["板材分组别名", "允许修改", "独立变化", "不显示"]);
-    }
   }
 
   validateBancai(key: string, info: MrbcjfzInfo) {
@@ -470,7 +459,6 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
     const errorBancaiKeys: string[] = [];
     for (const bancaiKey in xinghao.默认板材) {
       const info = xinghao.默认板材[bancaiKey];
-      this.justifyBancai(bancaiKey, info);
       const errors = this.validateBancai(bancaiKey, info);
       if (!isEmpty(errors)) {
         errorBancaiKeys.push(bancaiKey);
@@ -491,7 +479,7 @@ export class MrbcjfzComponent implements OnInit, OnChanges {
       const errorMsg2 = new Set<string>();
       this.bancaiInputComponents.forEach((v) => {
         v.validateValue();
-        const errorMsg3 = v.errorMsg;
+        const errorMsg3 = v.getErrorMsg();
         if (errorMsg3) {
           errorMsg2.add(v.info.label + errorMsg3);
         }

@@ -77,6 +77,7 @@ export class CadImageComponent extends Subscribed() implements OnInit {
     if (typeof force === "number") {
       params.t = force;
     }
+    force = true;
     if (force) {
       params.t = Date.now();
     }
@@ -165,7 +166,7 @@ export class CadImageComponent extends Subscribed() implements OnInit {
     try {
       const collection = this.collection();
       const id = this.id();
-      if (!data) {
+      if (!data || data.info.incomplete) {
         const cadsResult = await this.http.getCad({collection, id}, {silent: true});
         if (cadsResult.cads[0]) {
           data = cadsResult.cads[0];

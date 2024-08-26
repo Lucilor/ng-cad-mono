@@ -34,7 +34,9 @@
       <button mat-raised-button color="primary" (click)="downloadDxf(true)" [disabled]="!downloadUrl">下载原始dxf</button>
       <button mat-raised-button color="primary" (click)="print()">打印</button>
       <button mat-raised-button color="primary" (click)="openCadMuban()">打开cad模板</button>
-      <button mat-raised-button color="primary" (click)="savePdf()">保存PDF</button>
+      @if (showSavePdf) {
+        <button mat-raised-button color="primary" (click)="savePdf()">保存PDF</button>
+      }
     }
     @if (!production) {
       <mat-slide-toggle [(ngModel)]="checkEmpty">checkEmpty</mat-slide-toggle>

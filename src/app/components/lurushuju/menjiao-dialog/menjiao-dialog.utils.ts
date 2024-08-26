@@ -1,11 +1,17 @@
+import {Validators} from "@angular/forms";
 import {Cad数据要求} from "@app/cad/cad-shujuyaoqiu";
+import {InputInfo, InputInfoSelect} from "@app/modules/input/components/input.types";
+import {convertOptions} from "@app/modules/input/components/input.utils";
 import {CadListInput} from "@components/dialogs/cad-list/cad-list.types";
 import {CadData} from "@lucilor/cad-viewer";
 import {isTypeOf, keysOf, ObjectOf} from "@lucilor/utils";
 import {CadDataService} from "@modules/http/services/cad-data.service";
 import {HoutaiCad} from "@modules/http/services/cad-data.service.types";
 import {getHoutaiCad} from "@modules/http/services/cad-data.service.utils";
+import {Properties} from "csstype";
+import {difference} from "lodash";
 import {OptionsAll2} from "../lurushuju-index/lurushuju-index.types";
+import {getOptionInputInfo} from "../lurushuju-index/lurushuju-index.utils";
 import {
   get算料数据2,
   MenjiaoCadType,
@@ -19,6 +25,7 @@ import {
   算料数据2,
   算料数据2Keys,
   配合框组合,
+  门缝配置,
   门缝配置输入
 } from "../xinghao-data";
 
@@ -85,6 +92,9 @@ export const updateMenjiaoData = (data: 算料数据) => {
       if (!data[key1][key2]) {
         data[key1][key2] = {};
       }
+      if (!isTypeOf(data[key1].配合框CAD, "object")) {
+        data[key1].配合框CAD = {};
+      }
       for (const name of 配合框组合[产品分类] || []) {
         if (!isTypeOf(data[key1].配合框CAD[name], "object")) {
           data[key1].配合框CAD[name] = {};
@@ -94,6 +104,9 @@ export const updateMenjiaoData = (data: 算料数据) => {
         if (!(配合框组合[产品分类] || []).includes(name)) {
           delete data[key1].配合框CAD[name];
         }
+      }
+      if (!isTypeOf(data[key1].企料CAD, "object")) {
+        data[key1].企料CAD = {};
       }
       for (const name of 企料组合[产品分类] || []) {
         if (!isTypeOf(data[key1].企料CAD[name], "object")) {
@@ -329,4 +342,87 @@ export const copySuanliaoData = async (
     cad.zhankai[0].kailiaomuban = mubanIds2[cad.id];
   }
   return true;
+};
+
+export const getGroupStyle = (style?: Properties): Properties => {
+  return {display: "flex", flexWrap: "wrap", ...style};
+};
+export const getInfoStyle = (n: number, style?: Properties): Properties => {
+  const percent = 100 / n;
+  const margin = 5;
+  return {width: `calc(${percent}% - ${margin * 2}px)`, margin: `${margin}px`, ...style};
+};
+export const getMenjiaoOptionInputInfo = (data: any, key: string, n: number, optionsAll: OptionsAll2): InputInfoSelect => {
+  return getOptionInputInfo(optionsAll, key, (info) => {
+    info.model = {data, key};
+    if (!info.readonly && !info.disabled) {
+      info.validators = Validators.required;
+    }
+    info.onChange = () => {
+      updateMenjiaoData(data);
+    };
+    info.style = getInfoStyle(n);
+    const dialogKeys = ["门铰"];
+    const openInNewTabKeys = ["门扇厚度", "锁边", "铰边"];
+    if (dialogKeys.includes(key)) {
+      info.optionsDialog = {
+        noImage: true,
+        defaultValue: {value: data.选项默认值[key] || "", required: true},
+        optionKey: key,
+        useLocalOptions: true,
+        openInNewTab: true,
+        onChange(val) {
+          if (val.defaultValue) {
+            data.选项默认值[key] = val.defaultValue;
+          }
+        }
+      };
+    } else if (openInNewTabKeys.includes(key)) {
+      info.openInNewTab = {
+        optionKey: key,
+        onOptionsChange: (options) => {
+          info.options = convertOptions(options.data);
+        }
+      };
+    }
+    if (key === "锁边") {
+      info.hint = "请使用和实际对应的名字";
+    } else if (key === "门扇厚度") {
+      let valueBefore = data.门扇厚度;
+      if (!Array.isArray(valueBefore)) {
+        data.门扇厚度 = [];
+        if (isTypeOf(valueBefore, ["string", "number"])) {
+          data.门扇厚度.push(valueBefore);
+        }
+      }
+      if (valueBefore.length > 1) {
+        valueBefore = [valueBefore[0]];
+      }
+      info.onChange = (val: any) => {
+        const diff = difference(val, valueBefore);
+        if (diff.length > 0) {
+          data.门扇厚度 = [diff[0]];
+          valueBefore = diff;
+        }
+      };
+    }
+  });
+};
+export const getMenfengInputs = (data: 算料数据): InputInfo<门缝配置> => {
+  const getMenfengInputInfo = (value: (typeof 门缝配置输入)[number]): InputInfo => {
+    return {
+      type: "number",
+      label: value.name,
+      model: {data: data.门缝配置, key: value.name},
+      validators: Validators.required,
+      style: getInfoStyle(4)
+    };
+  };
+  return {
+    type: "group",
+    label: "门缝配置",
+    infos: 门缝配置输入.map(getMenfengInputInfo),
+    style: {marginBottom: "5px"},
+    groupStyle: getGroupStyle()
+  };
 };

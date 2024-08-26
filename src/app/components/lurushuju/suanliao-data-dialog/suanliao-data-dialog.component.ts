@@ -17,7 +17,8 @@ import {MAT_DIALOG_DATA, MatDialog, MatDialogRef} from "@angular/material/dialog
 import {MatDividerModule} from "@angular/material/divider";
 import {MatIconModule} from "@angular/material/icon";
 import {session} from "@app/app.common";
-import {filterCad, setCadData} from "@app/cad/cad-shujuyaoqiu";
+import {filterCad} from "@app/cad/cad-shujuyaoqiu";
+import {HoutaiCad} from "@app/modules/http/services/cad-data.service.types";
 import {OpenCadOptions} from "@app/services/app-status.types";
 import {getOpenDialogFunc} from "@components/dialogs/dialog.common";
 import {openZixuanpeijianDialog} from "@components/dialogs/zixuanpeijian/zixuanpeijian.component";
@@ -68,10 +69,16 @@ export class SuanliaoDataDialogComponent implements OnInit {
   cadItemButtons: CadItemButton<SuanliaoDataCadItemInfo>[];
   mubanExtraData: CadItemComponent["mubanExtraData"] = {};
   openCadOptions: RequiredKeys<OpenCadOptions, "suanliaogongshiInfo">;
-  cadShujuyaoqiu: CadItemComponent["yaoqiu"];
   suanliaoCadsSearch: InputInfo;
   hiddenSuanliaoCads: number[] = [];
   isSuanliaoCadReversed = true;
+  cadNameValidator = ((data: CadData) => {
+    const names = this.data.data.算料CAD.map((v) => v.名字);
+    if (names.filter((v) => v === data.name).length > 1) {
+      return {名字重复: true};
+    }
+    return null;
+  }).bind(this);
 
   showMenuLeftKey = "suanliaoDataDialog.showMenuLeft";
   showMenuRightKey = "suanliaoDataDialog.showMenuRight";
@@ -115,18 +122,15 @@ export class SuanliaoDataDialogComponent implements OnInit {
         ]
       );
     }
-    this.cadShujuyaoqiu = this.status.getCad数据要求("算料");
     this.suanliaoCadsSearch = {
       type: "string",
       label: "搜索",
       onInput: debounce((val) => {
         this.hiddenSuanliaoCads = [];
-        const yaoqiu = this.cadShujuyaoqiu;
-        if (yaoqiu) {
-          for (const [i, cad] of this.data.data.算料CAD.entries()) {
-            if (!filterCad(val, cad, yaoqiu)) {
-              this.hiddenSuanliaoCads.push(i);
-            }
+        for (const [i, cad] of this.data.data.算料CAD.entries()) {
+          const yaoqiu = this.status.getCad数据要求(cad.分类);
+          if (yaoqiu && !filterCad(val, cad, yaoqiu)) {
+            this.hiddenSuanliaoCads.push(i);
           }
         }
       }, 500)
@@ -150,6 +154,10 @@ export class SuanliaoDataDialogComponent implements OnInit {
     return 0;
   }
 
+  getCadYaoqiu(cad: HoutaiCad) {
+    return this.status.getCad数据要求(cad.分类);
+  }
+
   async selectSuanliaoCads() {
     const {data} = this.data;
     const zxpjData: ZixuanpeijianInput = {
@@ -162,15 +170,12 @@ export class SuanliaoDataDialogComponent implements OnInit {
       },
       step: 3,
       stepFixed: true,
-      noValidateCads: true
+      noValidateCads: true,
+      gongshis: data.算料公式
     };
     const result = await openZixuanpeijianDialog(this.dialog, {data: zxpjData});
     if (result) {
       data.算料CAD = result.零散.map((v) => {
-        const isSelected = v.data.info.isSuanliaoSelected;
-        if (!isSelected) {
-          setCadData(v.data, this.cadShujuyaoqiu?.选中CAD要求 || []);
-        }
         return getHoutaiCad(v.data, {houtaiId: v.info.houtaiId});
       });
     }
@@ -276,14 +281,16 @@ export class SuanliaoDataDialogComponent implements OnInit {
     const errors: string[] = [];
     for (const item of cadItems) {
       for (const err of item.validate()) {
-        errors.push(err);
+        if (!errors.includes(err)) {
+          errors.push(err);
+        }
       }
     }
 
     await timeout(0);
     const targetY = window.innerHeight / 2;
     const errorElInfos: {el: HTMLElement; y: number; order: number}[] = [];
-    this.el.nativeElement.querySelectorAll<HTMLElement>(".error").forEach((el) => {
+    this.el.nativeElement.querySelectorAll<HTMLElement>(".error, .name-error").forEach((el) => {
       const {top, bottom} = el.getBoundingClientRect();
       errorElInfos.push({el, y: (top + bottom) / 2, order: Math.abs((top + bottom) / 2 - targetY)});
     });

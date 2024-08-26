@@ -147,13 +147,15 @@
       margin: 0;
     }
 
-    --mdc-checkbox-state-layer-size: 30px;
-    .mat-mdc-checkbox-touch-target {
-      width: 36px;
-      height: 36px;
-    }
-    .mat-mdc-checkbox {
-      margin: 0;
+    & {
+      --mdc-checkbox-state-layer-size: 30px;
+      .mat-mdc-checkbox-touch-target {
+        width: 36px;
+        height: 36px;
+      }
+      .mat-mdc-checkbox {
+        margin: 0;
+      }
     }
 
     &.compact {
@@ -174,12 +176,23 @@
     color: green;
   }
 
-  .error {
+  .error,
+  button.error {
     color: red;
+  }
+
+  .primary {
+    color: var(--primary-color);
+  }
+  .accent {
+    color: var(--accent-color);
   }
 
   .link {
     cursor: pointer;
+    &.text {
+      text-decoration: underline;
+    }
   }
 
   .mat-divider {

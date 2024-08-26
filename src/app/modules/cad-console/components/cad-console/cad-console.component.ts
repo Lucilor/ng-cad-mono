@@ -29,7 +29,6 @@ export const commands: Command[] = [
     desc: {
       content: `编辑配置信息<br>这些信息保存在sessionStorage中，以便刷新页面后恢复。<br><pre class="hljs">${
         hljs.highlight(
-          "typescript",
           `
 interface CadViewerConfig {
 	width: number; // 宽
@@ -52,7 +51,8 @@ interface CadViewerConfig {
 	infoTabIndex: number; // 右侧菜单当前选中的tab
 	cadIds: string[]; // 已打开CAD的ids
 	collection: CadCollection; // 已打开CAD的collection
-}`
+}`,
+          {language: "typescript"}
         ).value
       }</pre>`
     }

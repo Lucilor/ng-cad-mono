@@ -1,6 +1,7 @@
 import {Component, Input} from "@angular/core";
 import {MatDialog} from "@angular/material/dialog";
 import {joinOptions} from "@app/app.common";
+import {MrbcjfzXinghaoInfo} from "@app/views/mrbcjfz/mrbcjfz.utils";
 import {openBancaiListDialog} from "@components/dialogs/bancai-list/bancai-list.component";
 import {BancaiList} from "@modules/http/services/cad-data.service.types";
 import {InputInfo} from "@modules/input/components/input.types";
@@ -14,6 +15,8 @@ import {InputComponent} from "../../modules/input/components/input.component";
   imports: [InputComponent]
 })
 export class BancaiFormComponent {
+  @Input({required: true}) xinghao!: MrbcjfzXinghaoInfo;
+  @Input({required: true}) key!: string;
   private _data: BancaiFormData = {bancai: "", cailiao: "", houdu: ""};
   @Input()
   get data() {
@@ -21,7 +24,9 @@ export class BancaiFormComponent {
   }
   set data(value) {
     this._data = value;
-    this.update();
+    setTimeout(() => {
+      this.update();
+    }, 0);
   }
   private _bancaiList: BancaiList[] = [];
   @Input()
@@ -30,14 +35,17 @@ export class BancaiFormComponent {
   }
   set bancaiList(value) {
     this._bancaiList = value;
-    this.update();
+    setTimeout(() => {
+      this.update();
+    }, 0);
   }
   inputInfos: InputInfo<BancaiFormData>[][] = [];
 
   constructor(private dialog: MatDialog) {}
 
   update() {
-    const checkedItem = this.bancaiList.find((v) => v.mingzi === this.data.bancai);
+    const bancaiList = this.bancaiList.filter((v) => !["同框色", "同扇色", "同背封板"].includes(v.mingzi));
+    const checkedItem = bancaiList.find((v) => v.mingzi === this.data.bancai);
     if (checkedItem) {
       this.data.bancai = checkedItem.mingzi;
       if (checkedItem.cailiaoList.length === 1) {
@@ -52,6 +60,7 @@ export class BancaiFormComponent {
       }
     }
     this.inputInfos = [
+      this.xinghao?.inputInfos[this.key]?.[0] || [],
       [
         {
           type: "string",
@@ -64,7 +73,7 @@ export class BancaiFormComponent {
               isDefault: true,
               onClick: async () => {
                 const result = await openBancaiListDialog(this.dialog, {
-                  data: {list: this.bancaiList, checkedItems: checkedItem ? [checkedItem] : undefined}
+                  data: {list: bancaiList, checkedItems: checkedItem ? [checkedItem] : undefined}
                 });
                 if (result) {
                   this.data.bancai = result[0]?.mingzi;
@@ -98,12 +107,12 @@ export class BancaiFormComponent {
               name: "list",
               isDefault: true,
               onClick: async () => {
-                const bancaiList = this.data.bancaiList || [];
-                const checkedItems = this.bancaiList.filter((v) => bancaiList.includes(v.mingzi));
-                if (bancaiList.includes("全部")) {
+                const bancaiListNames = this.data.bancaiList || [];
+                const checkedItems = bancaiList.filter((v) => bancaiListNames.includes(v.mingzi));
+                if (bancaiListNames.includes("全部")) {
                   checkedItems.push({mingzi: "全部", cailiaoList: [], guigeList: [], houduList: []});
                 }
-                const result = await openBancaiListDialog(this.dialog, {data: {list: this.bancaiList, checkedItems, multi: true}});
+                const result = await openBancaiListDialog(this.dialog, {data: {list: bancaiList, checkedItems, multi: true}});
                 if (result) {
                   this.data.bancaiList = result.map((v) => v.mingzi);
                   this.update();

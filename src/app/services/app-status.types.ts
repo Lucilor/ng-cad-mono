@@ -1,5 +1,6 @@
+import {ValidationErrors} from "@angular/forms";
 import {CadCollection} from "@app/cad/collections";
-import {SuanliaoDataParams} from "@app/components/lurushuju/xinghao-data";
+import {SuanliaoDataParams, 算料公式} from "@app/components/lurushuju/xinghao-data";
 import {SuanliaogongshiInfo} from "@app/modules/cad-editor/components/suanliaogongshi/suanliaogongshi.types";
 import {TableDataBase} from "@app/modules/http/services/cad-data.service.types";
 import {CadData} from "@lucilor/cad-viewer";
@@ -28,6 +29,8 @@ export interface OpenCadOptions {
   suanliaogongshiInfo?: SuanliaogongshiInfo;
   suanliaoTablesInfo?: {params: SuanliaoDataParams};
   extraData?: Partial<CadData>;
+  gongshis?: 算料公式[] | null;
+  validator?: (data: CadData) => ValidationErrors | null;
 }
 
 export interface AppUser extends TableDataBase {

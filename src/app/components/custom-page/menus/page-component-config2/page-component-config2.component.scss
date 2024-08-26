@@ -1,0 +1,39 @@
+.componet-menu {
+  --menu-width: 240px;
+  position: absolute;
+  width: 240px;
+  max-height: 100%;
+  top: 0;
+  right: 0;
+  background-color: white;
+  box-shadow: 0 0 10px 3px rgba(0, 0, 0, 0.15);
+  z-index: 1;
+
+  .name {
+    text-align: left;
+    padding: 5px 10px;
+  }
+
+  .inputs {
+    padding: 5px;
+  }
+}
+.componet-menu-content {
+  width: 100%;
+  padding: 6px;
+}
+
+mat-expansion-panel {
+  --mat-expansion-header-collapsed-state-height: auto;
+  --mat-expansion-header-expanded-state-height: auto;
+
+  mat-expansion-panel-header {
+    padding: 5px;
+  }
+
+  ::ng-deep {
+    .mat-expansion-panel-body {
+      padding: 0;
+    }
+  }
+}

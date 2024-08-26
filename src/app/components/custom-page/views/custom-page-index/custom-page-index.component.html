@@ -1,28 +1,88 @@
-<div class="toolbar">
-  <div class="组件栏 flex-110"></div>
-  <button mat-raised-button color="primary">预览</button>
-  <button mat-raised-button color="primary">保存</button>
+<div class="header toolbar">
+  <app-about></app-about>
+  @if (mode() === "design") {
+    <app-page-components-select class="flex-110"></app-page-components-select>
+  } @else {
+    <div class="flex-110"></div>
+  }
+  <div class="toolbar">
+    @for (info of toolbarInputs; track $index) {
+      <app-input [info]="info"></app-input>
+    }
+    @switch (mode()) {
+      @case ("design") {
+        <button mat-raised-button color="primary" (click)="clearPage()">清空</button>
+        <button mat-raised-button color="primary" (click)="import()">导入</button>
+        <button mat-raised-button color="primary" (click)="export()">导出</button>
+        <button mat-raised-button color="primary" (click)="preview()">预览</button>
+        <button mat-raised-button [color]="isSaved() ? 'primary' : 'accent'" (click)="save()">保存</button>
+      }
+      @case ("view") {
+        <button mat-raised-button color="primary" (click)="preview()">预览</button>
+      }
+    }
+  </div>
 </div>
 <div class="flex-row flex-110" style="overflow: hidden">
   <div class="显示内容"></div>
-  <div class="工作区" #pageContainer [style]="workSpaceStyle()">
-    <ng-scrollbar class="enable-x">
-      <div class="page" [style]="pageStyle()"></div>
+  <div
+    #workSpaceEl
+    class="work-space"
+    [style]="workSpaceStyle()"
+    (pointerdown)="onPagePointerDown($event)"
+    (pointermove)="onPagePointerMove($event)"
+    (pointerup)="onPagePointerUp($event)"
+  >
+    <ng-scrollbar class="enable-x work-space-scrollbar">
+      <div #pageEl class="page" [style]="pageStyle()">
+        <div class="page-inner">
+          <app-page-components-diaplay></app-page-components-diaplay>
+        </div>
+      </div>
     </ng-scrollbar>
+    @if (multiSelectorStyle(); as style) {
+      <div class="multi-selector" [style]="style" (pointerup)="onPagePointerUp($event)"></div>
+    }
+    @if (mode() === "design") {
+      <app-page-component-config2 [workSpaceEl]="workSpaceEl"></app-page-component-config2>
+    }
   </div>
-  <div class="功能区">
-    <mat-tab-group>
-      <mat-tab label="页面设置">
-        <app-page-config-menu
-          class="tab"
-          [page]="page"
-          [workSpaceStyle]="workSpaceStyle()"
-          (pageChanged)="onPageChanged()"
-          (workSpaceStyleChanged)="workSpaceStyle.set($event)"
-        ></app-page-config-menu>
-      </mat-tab>
-      <mat-tab label="图层管理"></mat-tab>
-      <mat-tab label="页面管理"></mat-tab>
-    </mat-tab-group>
-  </div>
+  @if (mode() === "design") {
+    <div class="menus">
+      <div class="toolbar vertical">
+        <button mat-icon-button color="primary" matTooltip="打开帮助文档" matTooltipPosition="left" (click)="openDoc()">
+          <mat-icon>help</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          color="primary"
+          matTooltip="撤销(ctrl+z)"
+          matTooltipPosition="left"
+          [disabled]="!canUndo()"
+          (click)="undo()"
+        >
+          <mat-icon>undo</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          color="primary"
+          matTooltip="恢复(ctrl+y)"
+          matTooltipPosition="left"
+          [disabled]="!canRedo()"
+          (click)="redo()"
+        >
+          <mat-icon>redo</mat-icon>
+        </button>
+      </div>
+      <mat-tab-group [(selectedIndex)]="menuTabIndex">
+        <mat-tab label="页面设置">
+          <app-page-config class="tab"></app-page-config>
+        </mat-tab>
+        <mat-tab label="图层管理">
+          <app-page-component-config></app-page-component-config>
+        </mat-tab>
+        <mat-tab label="页面管理"></mat-tab>
+      </mat-tab-group>
+    </div>
+  }
 </div>

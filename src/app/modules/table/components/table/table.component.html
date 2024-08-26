@@ -44,6 +44,9 @@
           </button>
         }
       }
+      @if (info.filterable) {
+        <app-input class="flex-110" [info]="filterInput"></app-input>
+      }
     </div>
     @if (info.subTitleStyle && toolbarButtons.inlineTitle) {
       <div [style]="info.subTitleStyle">{{ info.subTitle }}</div>

@@ -29,18 +29,20 @@ import {MatSort, MatSortModule} from "@angular/material/sort";
 import {MatTable, MatTableDataSource, MatTableModule} from "@angular/material/table";
 import {MatTreeFlatDataSource, MatTreeFlattener} from "@angular/material/tree";
 import {getFilepathUrl, getValueString, joinOptions, splitOptions} from "@app/app.common";
+import {InputComponent} from "@app/modules/input/components/input.component";
+import {InputInfo} from "@app/modules/input/components/input.types";
 import {OpenCadOptions} from "@app/services/app-status.types";
 import {CadImageComponent} from "@components/cad-image/cad-image.component";
 import {openCadEditorDialog} from "@components/dialogs/cad-editor-dialog/cad-editor-dialog.component";
 import {CadOptionsInput, openCadOptionsDialog} from "@components/dialogs/cad-options/cad-options.component";
 import {CadData} from "@lucilor/cad-viewer";
-import {downloadByString, selectFiles} from "@lucilor/utils";
+import {downloadByString, isTypeOf, queryStringList, selectFiles} from "@lucilor/utils";
 import {CadDataService} from "@modules/http/services/cad-data.service";
 import {TableDataBase} from "@modules/http/services/cad-data.service.types";
 import {MessageService} from "@modules/message/services/message.service";
 import {AppStatusService} from "@services/app-status.service";
 import csstype from "csstype";
-import {cloneDeep, intersection, isEqual} from "lodash";
+import {cloneDeep, debounce, intersection, isEqual} from "lodash";
 import {ImageComponent} from "../../../image/components/image/image.component";
 import {
   CellEvent,
@@ -61,6 +63,7 @@ import {getInputInfosFromTableColumns} from "./table.utils";
   standalone: true,
   imports: [
     forwardRef(() => CadImageComponent),
+    forwardRef(() => InputComponent),
     ImageComponent,
     MatButtonModule,
     MatCheckboxModule,
@@ -109,12 +112,21 @@ export class TableComponent<T> implements AfterViewInit, OnChanges, DoCheck {
   dataSource: MatTreeFlatDataSource<any, any> | MatTableDataSource<T> = new MatTableDataSource();
 
   editing: {colIdx: number; rowIdx: number; value: string};
+  filterStr = "";
+  filterInput: InputInfo = {
+    type: "string",
+    label: "搜索",
+    model: {data: this, key: "filterStr"},
+    onInput: debounce(() => {
+      this.filterTable();
+    }, 100)
+  };
 
   get toolbarButtons() {
     return this.info.toolbarButtons || {};
   }
   get haveToolbarButtons() {
-    return Object.keys(this.toolbarButtons).length > 0;
+    return Object.keys(this.toolbarButtons).length > 0 || this.info.filterable;
   }
   get haveData() {
     return this.info.data?.length > 0;
@@ -347,7 +359,7 @@ export class TableComponent<T> implements AfterViewInit, OnChanges, DoCheck {
     let data: T[] | undefined;
     try {
       data = JSON.parse(text);
-    } catch (error) {
+    } catch {
       this.message.alert("读取文件失败");
     }
     if (Array.isArray(data)) {
@@ -466,7 +478,7 @@ export class TableComponent<T> implements AfterViewInit, OnChanges, DoCheck {
     if (typeof value === "string") {
       try {
         id = JSON.parse(value).id;
-      } catch (error) {
+      } catch {
         id = "";
       }
     } else if (value instanceof CadData) {
@@ -544,7 +556,7 @@ export class TableComponent<T> implements AfterViewInit, OnChanges, DoCheck {
       let cadData: CadData | undefined;
       try {
         cadData = new CadData(JSON.parse(item[column.field] as string));
-      } catch (error) {}
+      } catch {}
       if (cadData) {
         const data: OpenCadOptions = {data: cadData, isLocal: true, center: true};
         const result = await openCadEditorDialog(this.dialog, {data});
@@ -638,5 +650,29 @@ export class TableComponent<T> implements AfterViewInit, OnChanges, DoCheck {
       default:
         return getValueString(value, ",", ":");
     }
+  }
+
+  filterTable() {
+    const {filterable} = this.info;
+    const dataSource = this.dataSource;
+    if (!filterable || !(dataSource instanceof MatTableDataSource)) {
+      return;
+    }
+    dataSource.filter = this.filterStr;
+    dataSource.filterPredicate = (data: T, filter: string) => {
+      const {filterable} = this.info;
+      if (!filterable || !isTypeOf(data, "object")) {
+        return true;
+      }
+      let searchColumns: string[] | undefined;
+      if (typeof filterable === "object") {
+        searchColumns = filterable.searchColumns;
+      }
+      if (!Array.isArray(searchColumns)) {
+        searchColumns = this.columnFields as string[];
+      }
+      const values = searchColumns.map((v) => getValueString((data as any)[v]));
+      return queryStringList(filter, values);
+    };
   }
 }

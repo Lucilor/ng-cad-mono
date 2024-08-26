@@ -18,7 +18,7 @@ import {
   ViewChild,
   ViewChildren
 } from "@angular/core";
-import {FormControl, FormsModule, ValidationErrors, Validators} from "@angular/forms";
+import {FormControl, FormsModule, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
 import {MatAutocompleteModule, MatAutocompleteSelectedEvent} from "@angular/material/autocomplete";
 import {MatButtonModule} from "@angular/material/button";
 import {ErrorStateMatcher, MatOptionModule} from "@angular/material/core";
@@ -30,8 +30,11 @@ import {MatInputModule} from "@angular/material/input";
 import {MatMenuModule} from "@angular/material/menu";
 import {MatRadioModule} from "@angular/material/radio";
 import {MatSelectModule} from "@angular/material/select";
+import {MatSlideToggleModule} from "@angular/material/slide-toggle";
 import {MatTooltipModule} from "@angular/material/tooltip";
-import {imgCadEmpty, joinOptions, splitOptions} from "@app/app.common";
+import {getArray, imgCadEmpty, joinOptions, splitOptions} from "@app/app.common";
+import {AppStatusService} from "@app/services/app-status.service";
+import {toFixed} from "@app/utils/func";
 import {CadImageComponent} from "@components/cad-image/cad-image.component";
 import {CadOptionsInput, openCadOptionsDialog} from "@components/dialogs/cad-options/cad-options.component";
 import {openEditFormulasDialog} from "@components/dialogs/edit-formulas-dialog/edit-formulas-dialog.component";
@@ -43,7 +46,7 @@ import {OptionsDataData} from "@modules/http/services/cad-data.service.types";
 import {ImageComponent} from "@modules/image/components/image/image.component";
 import {MessageService} from "@modules/message/services/message.service";
 import Color from "color";
-import csstype from "csstype";
+import {Properties} from "csstype";
 import {isEmpty, isEqual} from "lodash";
 import {Color as NgxColor} from "ngx-color";
 import {ChromeComponent, ColorChromeModule} from "ngx-color/chrome";
@@ -84,6 +87,7 @@ import {getValue, parseObjectString} from "./input.utils";
     MatOptionModule,
     MatRadioModule,
     MatSelectModule,
+    MatSlideToggleModule,
     MatTooltipModule,
     NgScrollbarModule,
     NgTemplateOutlet,
@@ -126,14 +130,21 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
 
   get value() {
     const {data, key} = this.model;
-    if (data && typeof data === "object" && key) {
-      return data[key];
+    const info = this.info;
+    let value: any;
+    if (data && typeof data === "object" && key !== undefined) {
+      value = data[key];
+    } else {
+      value = "";
     }
-    return "";
+    if (info.type === "number" && typeof value === "number" && typeof info.ndigits === "number") {
+      value = Number(value.toFixed(info.ndigits));
+    }
+    return value;
   }
   set value(val) {
     const {data, key} = this.model;
-    if (data && typeof data === "object" && key) {
+    if (data && typeof data === "object" && key !== undefined && key !== null) {
       data[key] = val;
     }
     const type = this.info.type;
@@ -168,7 +179,7 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     return hint || "";
   }
 
-  options: {value: any; label: string; disabled?: boolean; img?: string}[] = [];
+  options: {value: any; label: string; disabled?: boolean; img?: string; vid?: number}[] = [];
 
   get optionText() {
     const info = this.info;
@@ -196,6 +207,24 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     if (typeof value === "string") {
       return value;
     } else if (value instanceof Color) {
+      return value.string();
+    }
+    return "";
+  }
+  get colorStr2() {
+    const value = this.value;
+    if (typeof value === "string") {
+      return value;
+    } else if (value instanceof Color) {
+      return value.hex() + (value.alpha() < 1 ? `(${toFixed(value.alpha(), 2)})` : "");
+    }
+    return "";
+  }
+  get colorStr3() {
+    const value = this.value;
+    if (typeof value === "string") {
+      return value;
+    } else if (value instanceof Color) {
       return value.hex();
     }
     return "";
@@ -205,7 +234,7 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     if (info.type !== "color" || !info.options) {
       return [];
     }
-    return info.options.map((v) => (typeof v === "string" ? v : new Color(v).hex()));
+    return info.options.map((v) => (typeof v === "string" ? v : new Color(v).string()));
   }
 
   get fileAccept() {
@@ -218,11 +247,15 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     return undefined;
   }
 
+  get xuanxiangOptions() {
+    return this.status.getXuanxiangOptions().map<(typeof this.options)[number]>((v) => ({value: v, label: v}));
+  }
+
   displayValue: string | null = null;
   formulasStr = "";
 
   @HostBinding("class") class: string[] = [];
-  @HostBinding("style") style: csstype.Properties = {};
+  @HostBinding("style") style: Properties = {};
 
   @ViewChild("colorChrome") colorChrome?: ChromeComponent;
   @ViewChildren("cadContainer") cadContainers?: QueryList<ElementRef<HTMLElement>>;
@@ -236,6 +269,7 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
 
   valueChange$ = new BehaviorSubject<any>(null);
   filteredOptions$ = new BehaviorSubject<InputComponent["options"]>([]);
+  filteredXuanxiangOptions$ = new BehaviorSubject<InputComponent["options"][]>([]);
 
   private _validateValueLock = false;
 
@@ -244,63 +278,15 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     private dialog: MatDialog,
     private differs: KeyValueDiffers,
     private elRef: ElementRef<HTMLElement>,
-    private http: CadDataService
+    private http: CadDataService,
+    private status: AppStatusService
   ) {
     super();
     this.valueChange$.subscribe((val) => {
-      const info = this.info;
-      const {filterValuesGetter} = info;
-      let sortOptions: boolean;
-      const getFilterValues = (option: (typeof this.options)[number]) => {
-        let values: string[] = [];
-        if (typeof filterValuesGetter === "function") {
-          values = filterValuesGetter(option);
-        } else {
-          values = [option.label];
-          if (typeof option.value === "string") {
-            values.push(option.value);
-          }
-        }
-        return values;
-      };
-      let fixedOptions: string[] | undefined;
-      let optionsDisplayLimit: number | undefined;
-      if (info.type === "string") {
-        fixedOptions = info.fixedOptions;
-        optionsDisplayLimit = info.optionsDisplayLimit;
-      }
-      let options: typeof this.options;
-      if (val) {
-        options = this.options.filter((option) => {
-          const values = getFilterValues(option);
-          for (const v of values) {
-            if (typeof val === "string" && queryString(val, v)) {
-              return true;
-            }
-            if (fixedOptions && fixedOptions.includes(v)) {
-              return true;
-            }
-          }
-          return false;
-        });
-        sortOptions = true;
-      } else {
-        options = this.options;
-        sortOptions = false;
-      }
-      if (typeof optionsDisplayLimit === "number") {
-        options = options.slice(0, optionsDisplayLimit);
-      }
-      if (sortOptions) {
-        const value = this.value;
-        if (typeof value === "string") {
-          sortArrayByLevenshtein(options, getFilterValues, value);
-        }
-      }
       if (this.optionsDialog) {
         this.filteredOptions$.next([]);
       } else {
-        this.filteredOptions$.next(options);
+        this.filteredOptions$.next(this._filterOptions(val, this.options));
       }
     });
     this.infoDiffer = differs.find(this.info).create();
@@ -317,7 +303,8 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     }
     if (this.colorChrome) {
       await timeout(0);
-      this.setColor(this.colorChrome.hex);
+      const {r, g, b, a} = this.colorChrome.rgb;
+      this.setColor(new Color([r, g, b, a]));
     }
     this.infoDiffer = this.differs.find(this.info).create();
   }
@@ -343,6 +330,77 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
   ngOnDestroy() {
     for (const cadViewer of this.cadViewers) {
       cadViewer.destroy();
+    }
+  }
+
+  private _filterOptions(value: string, options: typeof this.options): typeof this.options {
+    const info = this.info;
+    const {filterValuesGetter} = info;
+    let sortOptions: boolean;
+    const getFilterValues = (option: (typeof this.options)[number]) => {
+      let values: string[] = [];
+      if (typeof filterValuesGetter === "function") {
+        values = filterValuesGetter(option);
+      } else {
+        values = [option.label];
+        if (typeof option.value === "string") {
+          values.push(option.value);
+        }
+      }
+      return values;
+    };
+    let fixedOptions: string[] | undefined;
+    let optionsDisplayLimit: number | undefined;
+    if (info.type === "string") {
+      fixedOptions = info.fixedOptions;
+      optionsDisplayLimit = info.optionsDisplayLimit;
+    }
+    let result: typeof this.options;
+    if (value) {
+      result = options.filter((option) => {
+        const values = getFilterValues(option);
+        for (const v of values) {
+          if (typeof value === "string" && queryString(value, v)) {
+            return true;
+          }
+          if (fixedOptions && fixedOptions.includes(v)) {
+            return true;
+          }
+        }
+        return false;
+      });
+      sortOptions = true;
+    } else {
+      result = options;
+      sortOptions = false;
+    }
+    if (typeof optionsDisplayLimit === "number") {
+      result = result.slice(0, optionsDisplayLimit);
+    }
+    if (sortOptions) {
+      const value = this.value;
+      if (typeof value === "string") {
+        sortArrayByLevenshtein(result, getFilterValues, value);
+      }
+    }
+    return result;
+  }
+  private _filterXuanxiangOptions(i?: number, keyVal?: string) {
+    const info = this.info;
+    const value = this.value;
+    if (info.type !== "object" || !info.isXuanxiang || !isTypeOf(value, "object")) {
+      return;
+    }
+    if (typeof i === "number") {
+      const options = this.filteredXuanxiangOptions$.value;
+      options[i] = this._filterOptions(keyVal || "", this.xuanxiangOptions);
+      this.filteredXuanxiangOptions$.next(options);
+    } else {
+      const options: (typeof this.options)[] = [];
+      for (const key in value) {
+        options.push(this._filterOptions(key, this.xuanxiangOptions));
+      }
+      this.filteredXuanxiangOptions$.next(options);
     }
   }
 
@@ -417,12 +475,22 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
         if (typeof v === "number") {
           return {value: String(v), label: String(v)};
         }
-        return {label: v.label || String(v.value), value: v.value, disabled: v.disabled, img: v.img};
+        return {label: v.label || String(v.value), value: v.value, disabled: v.disabled, img: v.img, vid: v.vid};
       });
       const isRequired = validators === Validators.required || (Array.isArray(validators) && validators.includes(Validators.required));
       if (isRequired && !readonly && !disabled) {
         if (this.options.length === 1) {
           this.value = this.options[0].value;
+        }
+      }
+    } else if (type === "object") {
+      const {requiredKeys} = info;
+      const value = this.value;
+      if (requiredKeys) {
+        for (const key of requiredKeys) {
+          if (!(key in value)) {
+            value[key] = "";
+          }
         }
       }
     } else if (type === "formulas") {
@@ -454,7 +522,11 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     if (info.hidden) {
       this.style.display = "none";
     }
-    let validateValue = !!info.initialValidate;
+    this.style["--input-text-align"] = info.inputTextAlign || "left";
+    const dataset = this.elRef.nativeElement.dataset;
+    dataset.type = type;
+    dataset.label = info.label;
+    let validateValue = !info.noInitialValidate;
     changes.forEachItem((item) => {
       if (item.key === "forceValidateNum") {
         if (item.currentValue !== item.previousValue) {
@@ -466,6 +538,7 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
       this.validateValue();
     }
     this.valueChange$.next(this.value);
+    this._filterXuanxiangOptions();
   }
 
   clear() {
@@ -533,7 +606,10 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
 
   async onChange(value = this.value, isAutocomplete = false) {
     const info = this.info;
-    this.validateValue(value);
+    const errors = this.validateValue(value);
+    if (!isEmpty(errors)) {
+      return;
+    }
     this._validateValueLock = true;
     setTimeout(() => {
       this._validateValueLock = false;
@@ -588,7 +664,8 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
   }
 
   onColorChange(ngxColor: NgxColor) {
-    this.value = new Color(ngxColor.hex);
+    const {r, g, b, a} = ngxColor.rgb;
+    this.value = new Color([r, g, b, a]);
     this.onChange();
   }
 
@@ -622,21 +699,38 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     this.errors = errors;
     this.errors2 = errors2;
     if (info.type === "object" && isTypeOf(value, "object")) {
-      const {keyValidators} = info;
       const errorsKey: ObjectOf<ValidationErrors | null> = {};
       const errorsValue: ObjectOf<ValidationErrors | null> = {};
+      const keyValidators = getArray(info.keyValidators);
+      const valueValidators = getArray(info.valueValidators);
       for (const key in value) {
         const val = value[key];
-        if (keyValidators) {
-          const control = new FormControl(key, keyValidators);
+        if (keyValidators.length > 0) {
+          const keyValidators2 = keyValidators.map<ValidatorFn>((v) => (control) => v(control, val));
+          const control = new FormControl(key, keyValidators2);
           if (!isEmpty(control.errors)) {
             errorsKey[key] = control.errors;
           }
         }
-        if (info.valueValidators) {
-          const control = new FormControl(val, info.valueValidators);
+        if (valueValidators.length > 0) {
+          const valueValidators2 = valueValidators.map<ValidatorFn>((v) => (control) => v(control, key));
+          const control = new FormControl(val, valueValidators2);
           if (!isEmpty(control.errors)) {
             errorsValue[key] = control.errors;
+          }
+        }
+      }
+      const {requiredKeys} = info;
+      if (requiredKeys) {
+        for (const key of requiredKeys) {
+          if (!value[key]) {
+            const key2 = `${key}不能为空`;
+            const a = errorsValue[key];
+            if (a) {
+              a[key2] = true;
+            } else {
+              errorsValue[key] = {[key2]: true};
+            }
           }
         }
       }
@@ -699,13 +793,15 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     }
   }
 
-  onClick() {
+  onClick(params?: {key: string}) {
     const {type, suffixIcons} = this.info;
     const defaultSuffixIcon = suffixIcons?.find((v) => v.isDefault);
     if (defaultSuffixIcon) {
       defaultSuffixIcon?.onClick?.();
     } else if (type === "select") {
       this.selectOptions(this.model.key);
+    } else if (type === "object" && params?.key) {
+      this.selectOptions(this.model.key, params.key);
     }
   }
 
@@ -754,7 +850,7 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     let options: OptionsDataData[] | undefined;
     if (hasOptions) {
       options = this.options.map<OptionsDataData>((v, i) => {
-        let vid = i;
+        let vid = typeof v.vid === "number" ? v.vid : i;
         let name = "";
         if (typeof v === "string") {
           name = v;
@@ -789,7 +885,8 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
       options,
       openInNewTab: optionsDialog.openInNewTab,
       noImage: optionsDialog.noImage,
-      nameField: optionsDialog.nameField
+      nameField: optionsDialog.nameField,
+      info: optionsDialog.info
     };
     if (optionsUseId) {
       dialogData.checkedVids = checked.map((v) => Number(v));
@@ -873,15 +970,15 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
   }
 
   setColor(color: Color | string | undefined | null) {
-    const value = typeof color === "string" ? color : color?.hex();
+    const value = typeof color === "string" ? color : color?.string();
     try {
       const c = new Color(value);
-      if (c) {
+      if (c.isLight()) {
         this.colorBg = "black";
       } else {
         this.colorBg = "white";
       }
-    } catch (error) {
+    } catch {
       this.colorBg = "white";
     }
   }
@@ -906,18 +1003,36 @@ export class InputComponent extends Utils() implements AfterViewInit, OnChanges,
     }
   }
 
-  changeObjectKey2(obj: ObjectOf<any>, oldKey: string, newKey: string | Event) {
-    this.changeObjectKey(obj, oldKey, newKey);
+  changeObjectKey2(...args: Parameters<InputComponent["changeObjectKey"]>) {
+    this.changeObjectKey(...args);
     setTimeout(() => {
       this.validateValue();
     }, 0);
   }
-
-  changeObjectValue2(obj: ObjectOf<any>, key: string, value: any) {
-    this.changeObjectValue(obj, key, value);
+  changeObjectValue2(...args: Parameters<InputComponent["changeObjectValue"]>) {
+    this.changeObjectValue(...args);
     setTimeout(() => {
       this.validateValue();
     }, 0);
+  }
+  objectAdd2(...args: Parameters<InputComponent["objectAdd"]>) {
+    this.objectAdd(...args);
+    this._filterXuanxiangOptions();
+    setTimeout(() => {
+      this.validateValue();
+    }, 0);
+  }
+  objectRemove2(...args: Parameters<InputComponent["objectRemove"]>) {
+    this.objectRemove(...args);
+    this._filterXuanxiangOptions();
+    setTimeout(() => {
+      this.validateValue();
+    }, 0);
+  }
+  onObjectKeyInput(event: Event, i: number) {
+    const target = event.target as HTMLInputElement;
+    const value = target.value;
+    this._filterXuanxiangOptions(i, value);
   }
 
   updateFormulasStr() {

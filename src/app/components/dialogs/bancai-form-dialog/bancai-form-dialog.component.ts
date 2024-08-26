@@ -1,6 +1,7 @@
 import {Component, Inject} from "@angular/core";
 import {MatButtonModule} from "@angular/material/button";
-import {MAT_DIALOG_DATA, MatDialogActions, MatDialogRef} from "@angular/material/dialog";
+import {MAT_DIALOG_DATA, MatDialogActions, MatDialogRef, MatDialogTitle} from "@angular/material/dialog";
+import {MrbcjfzXinghaoInfo} from "@app/views/mrbcjfz/mrbcjfz.utils";
 import {BancaiFormData} from "@components/bancai-form/bancai-form.component";
 import {environment} from "@env";
 import {BancaiList} from "@modules/http/services/cad-data.service.types";
@@ -14,7 +15,7 @@ import {getOpenDialogFunc} from "../dialog.common";
   templateUrl: "./bancai-form-dialog.component.html",
   styleUrls: ["./bancai-form-dialog.component.scss"],
   standalone: true,
-  imports: [BancaiFormComponent, MatDialogActions, MatButtonModule]
+  imports: [BancaiFormComponent, MatButtonModule, MatDialogActions, MatDialogTitle]
 })
 export class BancaiFormDialogComponent {
   prod = environment.production;
@@ -23,11 +24,7 @@ export class BancaiFormDialogComponent {
     public dialogRef: MatDialogRef<BancaiFormDialogComponent, BancaiFormOutput>,
     @Inject(MAT_DIALOG_DATA) public data: BancaiFormInput,
     private message: MessageService
-  ) {
-    if (!this.data) {
-      this.data = {data: {bancai: "", cailiao: "", houdu: ""}, bancaiList: []};
-    }
-  }
+  ) {}
 
   submit() {
     const data = {...this.data.data};
@@ -80,6 +77,8 @@ export class BancaiFormDialogComponent {
 export interface BancaiFormInput {
   data: BancaiFormData;
   bancaiList: BancaiList[];
+  xinghao: MrbcjfzXinghaoInfo;
+  key: string;
 }
 
 export type BancaiFormOutput = BancaiFormData;

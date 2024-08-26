@@ -8,6 +8,7 @@ export interface MenjiaoInput {
   isKailiao?: boolean;
   suanliaoDataName?: string;
   suanliaoTestName?: string;
+  xinghaozhuanyongCadCount?: number;
 }
 
 export interface MenjiaoOutput {

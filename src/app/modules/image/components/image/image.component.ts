@@ -13,6 +13,8 @@ import {
   viewChild
 } from "@angular/core";
 import {timeout} from "@lucilor/utils";
+import {Property} from "csstype";
+import {ImageEvent} from "./image.component.types";
 
 const imgEmpty = "assets/images/empty.jpg";
 const imgLoading = "assets/images/loading.gif";
@@ -50,9 +52,10 @@ export class ImageComponent {
   control = input<boolean>();
   loadingSrc = input<string>(imgLoading);
   emptySrc = input<string>(imgEmpty);
-  imgLoad = output();
-  imgError = output();
-  imgEnd = output();
+  objectFit = input<Property.ObjectFit>("contain");
+  imgLoad = output<ImageEvent>();
+  imgError = output<ImageEvent>();
+  imgEnd = output<ImageEvent>();
 
   loading = signal(false);
   error = signal(false);
@@ -120,17 +123,17 @@ export class ImageComponent {
     return url;
   }
 
-  onLoad() {
+  onLoad(event: Event) {
     this.loading.set(false);
-    this.imgLoad.emit();
-    this.imgEnd.emit();
+    this.imgLoad.emit({event});
+    this.imgEnd.emit({event});
   }
 
-  onError() {
+  onError(event: Event) {
     this.loading.set(false);
     this.error.set(true);
-    this.imgError.emit();
-    this.imgEnd.emit();
+    this.imgError.emit({event});
+    this.imgEnd.emit({event});
   }
 
   async showBigPic() {

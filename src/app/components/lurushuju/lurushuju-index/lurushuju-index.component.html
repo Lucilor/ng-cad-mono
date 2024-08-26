@@ -2,7 +2,7 @@
   <div class="toolbar">
     @switch (step) {
       @case (1) {
-        <button mat-raised-button color="primary" (click)="autoTest()">自动测试已经测试通过的型号</button>
+        <button mat-raised-button color="primary" (click)="autoTest()">测试</button>
         <button mat-raised-button color="primary" (click)="xinghaoTongyongGongshi()">所有型号通用公式</button>
         <button mat-raised-button color="primary" (click)="tongyongshuju()">通用数据录入</button>
         <button mat-raised-button color="primary" (click)="openZxpj(false)">配件库</button>
@@ -32,7 +32,6 @@
   <div class="menchaungs flex-column">
     <div class="toolbar">
       <button mat-stroked-button color="primary" (click)="addXinghaoMenchaung()">添加门窗</button>
-      <button mat-stroked-button color="primary" (click)="openXinghaoMenchaung()">查看所有门窗分类</button>
       <button mat-stroked-button [color]="isMenchuangEditable ? 'accent' : 'primary'" (click)="isMenchuangEditable = !isMenchuangEditable">
         {{ isMenchuangEditable ? "关闭" : "开启" }}编辑
       </button>
@@ -53,7 +52,6 @@
                   <button mat-button color="primary" (click)="editXinghaoMenchaung(i)">编辑</button>
                   <button mat-button color="primary" (click)="removeXinghaoMenchaung(i)">删除</button>
                   <button mat-button color="primary" (click)="addXinghaoGongyi(i)">添加工艺</button>
-                  <button mat-button color="primary" (click)="openXinghaoGongyi()">查看所有工艺</button>
                 </div>
               }
             </div>
@@ -135,8 +133,8 @@
             <div class="工艺做法 items no-items-per-row">
               @for (gongyi of xinghao["产品分类"][fenlei]; track gongyi) {
                 <div class="item link">
-                  <app-image [src]="getFilepathUrl(gongyi['图片'])" (click)="editGongyi2(fenlei, gongyi['名字'])"> </app-image>
-                  <div class="name" (click)="editGongyi2(fenlei, gongyi['名字'])">{{ gongyi["名字"] }}</div>
+                  <app-image [src]="getFilepathUrl(gongyi['图片'])" (click)="enterGongyi(fenlei, gongyi['名字'])"> </app-image>
+                  <div class="name" (click)="enterGongyi(fenlei, gongyi['名字'])">{{ gongyi["名字"] }}</div>
                   <div class="toolbar center">
                     <button mat-button color="primary" (click)="editGongyi(fenlei, gongyi['名字'])">编辑</button>
                     <button mat-button color="primary" (click)="copyGongyi(fenlei, gongyi['名字'])">复制</button>

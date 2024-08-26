@@ -29,9 +29,13 @@
             <button mat-raised-button color="primary" (click)="editBancaiForm(key)">编辑</button>
             <button mat-raised-button color="primary" (click)="emptyBancaiForm(key)">清空</button>
           </div>
-          <div class="bancai-attrs flex-row">
-            @for (info of xinghao.inputInfos[key]; track info) {
-              <app-input #bancaiInput [info]="info" appClickStop></app-input>
+          <div class="bancai-attrs flex-column">
+            @for (group of xinghao.inputInfos[key]; track $index) {
+              <div class="flex-row">
+                @for (info of group; track $index) {
+                  <app-input #bancaiInput [info]="info" appClickStop></app-input>
+                }
+              </div>
             }
           </div>
           <div

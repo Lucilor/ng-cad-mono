@@ -1,22 +1,19 @@
-import {Component, Input} from "@angular/core";
-import {ListRandom, ProgressBar} from "@lucilor/utils";
+import {Component, input, signal} from "@angular/core";
+import {ListRandom} from "@lucilor/utils";
 
 export type ProgressBarStatus = "hidden" | "progress" | "success" | "error" | "warning";
 
 @Component({
-  selector: "app-progress-bar[progressBar]",
+  selector: "app-progress-bar",
   templateUrl: "./progress-bar.component.html",
   styleUrls: ["./progress-bar.component.scss"],
   standalone: true,
   imports: []
 })
 export class ProgressBarComponent {
-  @Input()
-  progressBar = new ProgressBar(1);
-  @Input()
-  status: ProgressBarStatus = "hidden";
-  @Input()
-  msg = "";
+  progress = input.required<number>();
+  status = input.required<ProgressBarStatus>();
+  msg = input.required<string>();
 
   clickTextsRandom = new ListRandom([
     "(〃'▽'〃)",
@@ -47,13 +44,11 @@ export class ProgressBarComponent {
     "o((⊙﹏⊙))o",
     "(￣ェ￣;)"
   ]);
-  clickText: string | null = null;
-
+  clickText = signal<string>("");
   onPointerDown() {
-    this.clickText = this.clickTextsRandom.next();
+    this.clickText.set(this.clickTextsRandom.next());
   }
-
   onPointerUp() {
-    this.clickText = null;
+    this.clickText.set("");
   }
 }

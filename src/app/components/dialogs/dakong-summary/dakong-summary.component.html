@@ -1,32 +1,34 @@
-<div class="title center">最近一次孔位开料结果</div>
-<div class="btn-group">
+<div class="toolbar center">
+  <div class="title">订单编号：{{ ordersCodeText() }}</div>
+  <div class="title">最近一次孔位开料结果</div>
+</div>
+<div class="toolbar">
   <button mat-raised-button color="primary" (click)="close()">关闭</button>
-  <mat-slide-toggle [(ngModel)]="showIds">{{ showIds ? "" : "不" }}显示id</mat-slide-toggle>
-  <mat-slide-toggle [(ngModel)]="form.strictFilter" (change)="filterTableData()">
-    {{ form.strictFilter ? "精确" : "模糊" }}搜索
+  <mat-slide-toggle [(ngModel)]="showIds">{{ showIds() ? "" : "不" }}显示id</mat-slide-toggle>
+  <mat-slide-toggle [checked]="form().strictFilter" (change)="onStrictFilterChange($event)">
+    {{ form().strictFilter ? "精确" : "模糊" }}搜索
   </mat-slide-toggle>
 </div>
 <div class="filter-form">
   <div>数据筛选</div>
-  @for (info of formInputInfos; track info) {
+  @for (info of formInputInfos(); track $index) {
     <app-input class="flex-110" [info]="info"></app-input>
   }
 </div>
 <ng-scrollbar>
-  @for (info of tableInfos; track info) {
+  @for (info of tableInfos(); track $index) {
     <div class="dakong-summary">
-      <div class="title">订单编号：{{ info.code }}</div>
       <div class="dakong-summary-table">
         <div class="title">CAD开孔情况</div>
         <div class="row">
-          @for (col of tableColumns; track col) {
+          @for (col of tableColumns(); track $index) {
             <div [class]="['cell', col.field]">{{ col.name }}</div>
           }
         </div>
         @for (item of info.data; track item) {
           @if (!item.hidden) {
             <div class="row">
-              @for (col of tableColumns; track col) {
+              @for (col of tableColumns(); track $index) {
                 <div [class]="['cell', col.field]">
                   @switch (col.field) {
                     @case ("count") {
@@ -44,7 +46,7 @@
                         <span>{{ item.cadName }}</span>
                         <br />
                         <app-cad-image [id]="item.cadId" />
-                        <span class="link" (click)="openCad(item)">查看</span>
+                        <span class="link text" (click)="openCad(item)">查看</span>
                       </span>
                     }
                     @case ("kongName") {
@@ -52,23 +54,29 @@
                         <span>{{ item.kongName }}</span>
                         <br />
                         <app-cad-image [id]="item.kongId" />
-                        <span class="link" (click)="openKongCad(item)">查看</span>
+                        <span class="link text" (click)="openKongCad(item)">查看</span>
                       </span>
                     }
                     @case ("peizhiName") {
                       <span>
                         <span>{{ item.peizhiName }}</span>
                         <br />
-                        <span class="link" (click)="openKongpeizhi(item)">查看</span>
+                        <span class="link text" (click)="openKongpeizhi(item)">查看</span>
                       </span>
                     }
                     @case ("error") {
                       <span>
-                        <span>{{ item[col.field] }}</span>
+                        @if (item.muban; as muban) {
+                          <span>激光开料模板</span>
+                          <span class="link text" (click)="openMuban(item)">【{{ muban.name }}】</span>
+                          <br />
+                        }
+                        @if (item[col.field]; as val) {
+                          <span>{{ val }}</span>
+                          <br />
+                        }
                         @if (item.info) {
-                          @if (item[col.field]) {
-                            <span><br /><br /></span>
-                          }
+                          <br />
                           <span>{{ item.info }}</span>
                         }
                       </span>

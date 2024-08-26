@@ -1,3 +1,3 @@
-@for (p of points; track p; let i = $index) {
+@for (p of points; track i; let i = $index) {
   <div class="point" [class.active]="p.active" [style]="getStyle(p)" (click)="onPointClick(i)"></div>
 }

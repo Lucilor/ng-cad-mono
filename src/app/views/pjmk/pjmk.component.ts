@@ -60,7 +60,7 @@ export class PjmkComponent implements OnInit {
       this.name = records[0].mingzi || "";
       try {
         this.data = importZixuanpeijian(JSON.parse(records[0].peijianmokuai));
-      } catch (error) {}
+      } catch {}
     }
     const struct = await this.http.getXiaodaohangStructure(table);
     this.tableName = struct?.mingzi || "";

@@ -4,6 +4,7 @@ import {uniqueId} from "lodash";
 export interface MsbjRectInfoRaw {
   vid: number;
   name?: string;
+  选项名称?: string;
   isBuju: boolean;
   rect: {
     origin: {
@@ -34,6 +35,13 @@ export class MsbjRectInfo {
   }
   set name(value) {
     this.raw.name = value;
+  }
+
+  get 选项名称() {
+    return this.raw.选项名称 || "";
+  }
+  set 选项名称(value) {
+    this.raw.选项名称 = value;
   }
 
   constructor(public raw: MsbjRectInfoRaw) {

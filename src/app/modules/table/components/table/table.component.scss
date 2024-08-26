@@ -54,17 +54,17 @@
       box-sizing: border-box;
       padding: 5px;
       transition: 0.3s;
+      border-left: var(--border);
+      border-bottom: var(--border);
       &:hover {
         background-color: var(--cell-hover-color);
       }
       &.active {
         background-color: var(--cell-active-color);
       }
-      border-left: var(--border);
       &:last-child {
         border-right: var(--border);
       }
-      border-bottom: var(--border);
 
       &:not(.mat-column-select) {
         flex: 1 1 0;

@@ -8,4 +8,5 @@ export interface DingdanyichangData {
   chulitupian?: string;
   keyishendan?: string;
   baogaoren?: string;
+  dingdanzhuangtai?: string;
 }
