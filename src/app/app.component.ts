@@ -1,5 +1,5 @@
 import {CdkDrag} from "@angular/cdk/drag-drop";
-import {Component} from "@angular/core";
+import {Component, inject} from "@angular/core";
 import {MatDialog} from "@angular/material/dialog";
 import {MatIconModule} from "@angular/material/icon";
 import {MatMenuModule} from "@angular/material/menu";
@@ -16,21 +16,21 @@ import {routesInfo} from "./routing/routes-info";
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.scss"],
   standalone: true,
-  imports: [RouterOutlet, SpinnerComponent, CdkDrag, MatIconModule, MatMenuModule, MessageTestComponent]
+  imports: [CdkDrag, MatIconModule, MatMenuModule, MessageTestComponent, RouterOutlet, SpinnerComponent]
 })
 export class AppComponent {
-  title = "ng-cad2";
-  loaderText = "";
-  isProd = environment.production;
-  routesInfo = routesInfo;
+  private dialog = inject(MatDialog);
+  private message = inject(MessageService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private status = inject(AppStatusService);
 
-  constructor(
-    private router: Router,
-    private route: ActivatedRoute,
-    private status: AppStatusService,
-    private message: MessageService,
-    private dialog: MatDialog
-  ) {}
+  isProd = environment.production;
+  routesInfoItems: {info: (typeof routesInfo)[number]; title: ReturnType<AppComponent["getRouteTitle"]>}[];
+
+  constructor() {
+    this.routesInfoItems = routesInfo.map((info) => ({info, title: this.getRouteTitle(info)}));
+  }
 
   getRouteTitle(routeInfo: (typeof routesInfo)[number]) {
     const {title, path} = routeInfo;
@@ -68,8 +68,8 @@ export class AppComponent {
     }
   }
 
-  navigate(routeInfo: (typeof this.routesInfo)[number]) {
+  navigate(item: (typeof this.routesInfoItems)[number]) {
     this.dialog.closeAll();
-    this.router.navigate([routeInfo.path], {queryParamsHandling: "merge"});
+    this.router.navigate([item.info.path], {queryParamsHandling: "merge"});
   }
 }

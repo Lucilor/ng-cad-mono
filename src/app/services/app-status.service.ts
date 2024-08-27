@@ -90,7 +90,7 @@ export class AppStatusService {
   forceUpdateCadImg = false;
   forceUpdateCadImg2 = false;
   updateCadImglLock$ = new BehaviorSubject<number>(0);
-  cadImgToUpdate: ObjectOf<{t: number}> = {};
+  cadImgToUpdate$ = new BehaviorSubject<ObjectOf<{t: number}>>({});
 
   constructor(
     private config: AppConfigService,
@@ -371,7 +371,7 @@ export class AppStatusService {
         beforeOpen: async (data2) => {
           const url = await getCadPreview(collection, data2);
           await http.setCadImg(data2.id, url, {silent: true});
-          this.cadImgToUpdate[data2.id] = {t: Date.now()};
+          this.addCadImgToUpdate(data2.id);
         }
       });
       this.saveCadLocked$.next(false);
@@ -585,6 +585,22 @@ export class AppStatusService {
       result = this.cad数据要求List.find((v) => v.CAD分类 === "配件库");
     }
     return result;
+  }
+
+  addCadImgToUpdate(id: string) {
+    const obj = this.cadImgToUpdate$.value;
+    obj[id] = {t: Date.now()};
+    this.cadImgToUpdate$.next(obj);
+  }
+  removeCadImgToUpdate(id: string) {
+    const obj = this.cadImgToUpdate$.value;
+    if (id in obj) {
+      delete obj[id];
+      this.cadImgToUpdate$.next(obj);
+    }
+  }
+  isCadImgToUpdate(id: string) {
+    return this.cadImgToUpdate$.value[id];
   }
 
   checkEnvBeta() {

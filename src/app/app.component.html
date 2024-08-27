@@ -5,9 +5,9 @@
     <mat-icon color="primary" [matMenuTriggerFor]="links">apps</mat-icon>
     <mat-menu #links="matMenu">
       <button mat-menu-item (click)="changeProject()">更换项目</button>
-      @for (routeInfo of routesInfo; track routeInfo) {
-        <button mat-menu-item (click)="navigate(routeInfo)">
-          {{ getRouteTitle(routeInfo) }}
+      @for (item of routesInfoItems; track $index) {
+        <button mat-menu-item (click)="navigate(item)">
+          {{ item.title }}
         </button>
       }
       <app-message-test></app-message-test>

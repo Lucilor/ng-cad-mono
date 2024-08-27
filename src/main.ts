@@ -1,4 +1,4 @@
-import {enableProdMode, importProvidersFrom, Injectable} from "@angular/core";
+import {enableProdMode, importProvidersFrom, Injectable, provideExperimentalZonelessChangeDetection} from "@angular/core";
 import {MAT_DATE_LOCALE} from "@angular/material/core";
 import {MAT_DIALOG_DEFAULT_OPTIONS, MatDialogConfig} from "@angular/material/dialog";
 import {MAT_FORM_FIELD_DEFAULT_OPTIONS, MatFormFieldDefaultOptions} from "@angular/material/form-field";
@@ -98,6 +98,7 @@ bootstrapApplication(AppComponent, {
         }
       } as RecaptchaLoaderOptions
     },
-    provideAnimations()
+    provideAnimations(),
+    provideExperimentalZonelessChangeDetection()
   ]
 }).catch((err) => console.error(err));

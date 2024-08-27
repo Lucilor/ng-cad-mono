@@ -1,6 +1,5 @@
 import {animate, style, transition, trigger} from "@angular/animations";
 import {
-  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   computed,
@@ -39,8 +38,7 @@ const imgLoading = "assets/images/loading.gif";
     ])
   ],
   standalone: true,
-  imports: [],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  imports: []
 })
 export class ImageComponent {
   private cd = inject(ChangeDetectorRef);
