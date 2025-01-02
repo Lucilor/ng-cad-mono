@@ -1,8 +1,11 @@
 import {Formulas} from "@app/utils/calc";
+import {CustomValidators} from "@app/utils/input-validators";
+import {getSortedItems} from "@app/utils/sort-items";
 import {isTypeOf, ObjectOf} from "@lucilor/utils";
 import {HoutaiCad, MongodbDataBase2, OptionsDataData} from "@modules/http/services/cad-data.service.types";
+import {InputInfo} from "@modules/input/components/input.types";
 import {MrbcjfzInfo} from "@views/mrbcjfz/mrbcjfz.types";
-import {isArray, uniq} from "lodash";
+import {difference, isArray, uniq} from "lodash";
 import {OptionsAll} from "./services/lrsj-status.types";
 
 export const getXinghao = (raw: XinghaoRaw | null | undefined) => {
@@ -182,6 +185,38 @@ export interface 输入 {
   生效条件?: string;
   下单显示请输入?: boolean;
 }
+export const getInputInfosFromShurus = <T extends ObjectOf<any> = ObjectOf<any>>(shurus: 输入[], obj: T) => {
+  const sortedShurus = getSortedItems(shurus, (v) => v.排序 ?? 0);
+  return sortedShurus.map<InputInfo>((shuru) => {
+    const isNumber = typeof shuru.默认值 === "number" || shuru.取值范围;
+    const part = {readonly: !shuru.可以修改, model: {data: obj, key: shuru.名字}};
+    let defaultValue = shuru.默认值;
+    if (isNumber && typeof defaultValue === "string" && defaultValue.length > 0) {
+      defaultValue = parseFloat(defaultValue);
+      if (isNaN(defaultValue)) {
+        defaultValue = 0;
+      }
+    }
+    Object.assign(obj, {[shuru.名字]: defaultValue});
+    const toRemove = difference(
+      Object.keys(obj),
+      sortedShurus.map((v) => v.名字)
+    );
+    for (const key of toRemove) {
+      delete obj[key];
+    }
+    if (isNumber) {
+      return {
+        type: "number",
+        label: shuru.名字,
+        ...part,
+        validators: CustomValidators.rangedNumber(shuru.取值范围)
+      };
+    } else {
+      return {type: "string", label: shuru.名字, ...part};
+    }
+  });
+};
 
 export type 花件玻璃信息 = ObjectOf<any>;
 

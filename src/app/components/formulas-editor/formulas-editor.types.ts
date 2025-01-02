@@ -7,3 +7,10 @@ export interface FormulasChangeEvent {
 }
 
 export type FormulasValidatorFn = (formulaList: string[][]) => ValidationErrors | null;
+
+export interface FormulasCompactConfig {
+  minRows?: number;
+  maxRows?: number;
+  editOn?: boolean;
+  noToolbar?: boolean;
+}

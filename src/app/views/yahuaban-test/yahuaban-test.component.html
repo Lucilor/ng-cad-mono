@@ -1,0 +1,69 @@
+<div class="content flex-row">
+  @if (item(); as item) {
+    <div class="flex-column flex-110">
+      <div class="toolbar">
+        <div class="title">物料</div>
+        <div class="divider"></div>
+        <div class="title">{{ item.mingzi }}</div>
+        <div class="flex-110"></div>
+        <button mat-raised-button color="primary" (click)="save()">保存</button>
+        <button mat-raised-button color="primary" (click)="calcYahuaban()">计算</button>
+      </div>
+      <ng-scrollbar>
+        <div class="item">
+          @for (info of wuliaoInputInfos(); track $index) {
+            <app-input [info]="info"></app-input>
+          }
+          <div class="sub-form-field">
+            <div class="toolbar">
+              <div class="label">公式输入</div>
+              <button mat-raised-button [color]="showGssrTable() ? 'accent' : 'primary'" (click)="toggleGssrTable()">编辑公式输入</button>
+            </div>
+            <div class="toolbar">
+              @for (info of gssrInputInfos(); track $index) {
+                <app-input [info]="info"></app-input>
+              }
+            </div>
+            @if (showGssrTable()) {
+              <app-table
+                [info]="gssrTableInfo()"
+                (toolbarButtonClick)="onGssrTableToolbar($event)"
+                (rowButtonClick)="onGssrRow($event)"
+              ></app-table>
+            }
+          </div>
+          <app-formulas-editor
+            [formulas]="item.qiegegongshi"
+            [compact]="{minRows: 5}"
+            noScroll
+            (formulasChange)="setItemQiegegongshi($event)"
+          ></app-formulas-editor>
+        </div>
+        <mat-divider> </mat-divider>
+        <div class="item">
+          <div class="toolbar">
+            <div class="title">加工要求</div>
+          </div>
+          @for (info of jiagongInputInfos(); track $index) {
+            <app-input [info]="info"></app-input>
+          }
+        </div>
+      </ng-scrollbar>
+    </div>
+    <div class="calc-content flex-column">
+      <div class="calc-config item">
+        @for (info of calcConfigInputInfos(); track $index) {
+          <app-input [info]="info"></app-input>
+        }
+      </div>
+      <div class="calc-result item">
+        @if (calcResult(); as calcResult) {
+          @for (error of calcResult.raw.errors; track $index) {
+            <div class="text error">{{ error }}</div>
+          }
+        }
+      </div>
+      <div #cadContainer class="cad-container flex-110"></div>
+    </div>
+  }
+</div>

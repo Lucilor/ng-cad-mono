@@ -1,4 +1,4 @@
-import {KeyValue, KeyValuePipe, NgTemplateOutlet} from "@angular/common";
+import {KeyValue, NgTemplateOutlet} from "@angular/common";
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -24,6 +24,7 @@ import {CustomValidators} from "@app/utils/input-validators";
 import {getSortedItems} from "@app/utils/sort-items";
 import {openEditFormulasDialog} from "@components/dialogs/edit-formulas-dialog/edit-formulas-dialog.component";
 import {FormulasEditorComponent} from "@components/formulas-editor/formulas-editor.component";
+import {FormulasCompactConfig} from "@components/formulas-editor/formulas-editor.types";
 import {ShuruTableDataSorted} from "@components/lurushuju/lrsj-pieces/lrsj-zuofa/lrsj-zuofa.types";
 import {TextInfoComponent} from "@components/text-info/text-info.component";
 import {TextInfo} from "@components/text-info/text-info.types";
@@ -45,7 +46,6 @@ import {SuanliaogongshiCloseEvent, SuanliaogongshiInfo} from "./suanliaogongshi.
   selector: "app-suanliaogongshi",
   imports: [
     FormulasEditorComponent,
-    KeyValuePipe,
     MatButtonModule,
     MatCardModule,
     MatDividerModule,
@@ -73,10 +73,10 @@ export class SuanliaogongshiComponent {
   closeOut = output<SuanliaogongshiCloseEvent>({alias: "close"});
   slgsChange = output();
 
-  gongshiInfo = signal<{formulas?: Formulas}[]>([]);
+  gongshiInfo = signal<{formulas: Formulas; compact: FormulasCompactConfig}[]>([]);
   gongshiInfoEff = effect(() => {
     const info = this.info();
-    this.gongshiInfo.set((info.data.算料公式 || []).map(() => ({})));
+    this.gongshiInfo.set((info.data.算料公式 || []).map((v) => ({formulas: v.公式, compact: {minRows: 5, editOn: true, noToolbar: true}})));
   });
 
   title = computed(() => this.info().slgs?.title || "算料公式");
@@ -217,19 +217,30 @@ export class SuanliaogongshiComponent {
     this.slgsChange.emit();
   }
   editGongshiStart(index: number) {
-    const info = this.gongshiInfo()[index];
-    info.formulas = cloneDeep(this.info().data.算料公式?.[index].公式);
-    this.gongshiInfo.update((v) => [...v]);
-  }
-  editGongshiEnd(index: number, formulas: Formulas | null, close = false) {
-    const info = this.info();
     const gongshiInfo = this.gongshiInfo()[index];
+    if (gongshiInfo) {
+      gongshiInfo.compact = {...gongshiInfo.compact, editOn: true};
+      this.gongshiInfo.update((v) => [...v]);
+    }
+  }
+  editGongshiEnd(index: number, formulas: Formulas | null | undefined, close = false) {
+    const info = this.info();
     if (formulas && info.data.算料公式) {
       info.data.算料公式[index].公式 = formulas;
       this.slgsChange.emit();
     }
     if (close) {
-      delete gongshiInfo.formulas;
+      const gongshiInfo = this.gongshiInfo()[index];
+      if (gongshiInfo) {
+        gongshiInfo.compact = {...gongshiInfo.compact, editOn: false};
+        this.gongshiInfo.update((v) => [...v]);
+      }
+    }
+  }
+  onFormulaCompactChange(index: number, compact: FormulasCompactConfig | undefined) {
+    const gongshiInfo = this.gongshiInfo()[index];
+    if (gongshiInfo && compact) {
+      gongshiInfo.compact = compact;
       this.gongshiInfo.update((v) => [...v]);
     }
   }

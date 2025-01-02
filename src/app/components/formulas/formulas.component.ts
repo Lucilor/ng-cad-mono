@@ -1,11 +1,18 @@
-import {AfterViewInit, ElementRef, EventEmitter, Output} from "@angular/core";
-import {QueryList} from "@angular/core";
-import {ViewChildren} from "@angular/core";
-import {Input} from "@angular/core";
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  effect,
+  ElementRef,
+  forwardRef,
+  input,
+  output,
+  untracked,
+  viewChildren
+} from "@angular/core";
 import {Component} from "@angular/core";
 import {timeout} from "@lucilor/utils";
 import {InputComponent} from "@modules/input/components/input.component";
-import csstype from "csstype";
+import {Properties} from "csstype";
 import {lastValueFrom, Subject} from "rxjs";
 import {FormulaInfo} from "./formulas.types";
 
@@ -13,33 +20,29 @@ import {FormulaInfo} from "./formulas.types";
   selector: "app-formulas",
   templateUrl: "./formulas.component.html",
   styleUrls: ["./formulas.component.scss"],
-  imports: [InputComponent]
+  imports: [forwardRef(() => InputComponent)],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FormulasComponent implements AfterViewInit {
-  private _formulaInfos: FormulaInfo[] = [];
-  @Input()
-  get formulaInfos() {
-    return this._formulaInfos;
-  }
-  set formulaInfos(value) {
-    this._formulaInfos = value;
-    this.update();
-  }
+  formulaInfos = input.required<FormulaInfo[]>();
+  formulaStyles = input<Properties>();
+  keyStyles = input<Properties>();
+  valueStyles = input<Properties>();
+  updated = output();
 
-  @Input() formulaStyles: csstype.Properties = {};
-  @Input() keyStyles: csstype.Properties = {};
-  @Input() valueStyles: csstype.Properties = {};
-
-  @Output() updated = new EventEmitter<void>();
+  formulaInfosEff = effect(() => {
+    this.formulaInfos();
+    untracked(() => this.update());
+  });
 
   private _viewInited = new Subject<void>();
-  @ViewChildren("formula", {read: ElementRef}) formulaRefs?: QueryList<ElementRef<HTMLDivElement>>;
 
   ngAfterViewInit() {
     this._viewInited.next();
     this._viewInited.complete();
   }
 
+  formulaRefs = viewChildren<ElementRef<HTMLDivElement>>("formula");
   async update() {
     if (!this.formulaRefs) {
       await lastValueFrom(this._viewInited);
@@ -49,7 +52,7 @@ export class FormulasComponent implements AfterViewInit {
       return;
     }
     const keys: HTMLElement[][] = [];
-    this.formulaRefs.forEach((ref) => {
+    this.formulaRefs().forEach((ref) => {
       const keysGroup: HTMLElement[] = [];
       ref.nativeElement.querySelectorAll(".formula-key").forEach((el) => {
         if (el instanceof HTMLElement) {

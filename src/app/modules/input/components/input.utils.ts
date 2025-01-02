@@ -60,12 +60,18 @@ export interface GetInputInfoGroupOpts {
   groupStyle?: Properties;
   label?: string;
 }
-export const getInputInfoGroup = <T>(infos: InputInfo<T>[], opts?: GetInputInfoGroupOpts): InputInfoGroup<T> => {
+export const getInputInfoGroup = <T>(infos: InputInfo<T>[], opts?: GetInputInfoGroupOpts): InputInfoGroup => {
   const {style, groupStyle, inputStyle, label = ""} = opts || {};
   for (const info of infos) {
     info.style = {flex: "1 1 0", boxSizing: "border-box", width: "0", paddingRight: "5px", ...inputStyle, ...info.style};
   }
-  return {type: "group", label, style, groupStyle: {display: "flex", paddingRight: "-5px", flexWrap: "wrap", ...groupStyle}, infos};
+  return {
+    type: "group",
+    label,
+    style,
+    groupStyle: {display: "flex", marginRight: "-5px", flexWrap: "wrap", ...groupStyle},
+    infos
+  };
 };
 
 export const getNumberUnitInput = <T>(label: string, unit: string, others?: Partial<InputInfoNumber<T>>): InputInfoNumber<T> => {
@@ -82,6 +88,8 @@ export const getNumberUnitInput = <T>(label: string, unit: string, others?: Part
 export interface GetUnifiedInputsOpts extends GetInputInfoGroupOpts {
   onChange?: () => void;
   unifiedInputStyle?: Properties;
+  unified?: boolean;
+  customToolbar?: (unifiedInput: InputInfoBoolean) => InputInfo[];
 }
 export const getUnifiedInputs = <T>(
   id: string,
@@ -90,9 +98,20 @@ export const getUnifiedInputs = <T>(
   opts?: GetUnifiedInputsOpts
 ) => {
   const storageKey = `getUnifiedInputs_${id}`;
-  let unified: boolean | null = session.load(storageKey);
-  if (typeof unified !== "boolean") {
-    unified = uniq(arr).length < 2;
+  let unified: boolean;
+  if (typeof opts?.unified === "boolean") {
+    unified = opts.unified;
+    session.save(storageKey, unified);
+  } else {
+    const unified2: boolean | null = session.load(storageKey);
+    const isUnique = uniq(arr).length < 2;
+    if (typeof unified2 !== "boolean") {
+      unified = isUnique;
+    } else if (unified2 && !isUnique) {
+      unified = false;
+    } else {
+      unified = unified2;
+    }
   }
   const {onChange, unifiedInputStyle, inputStyle} = opts || {};
   const unifiedInput: InputInfo = {
@@ -119,7 +138,7 @@ export const getUnifiedInputs = <T>(
         }
       }
     },
-    style: {flex: "0 0 100%", ...unifiedInputStyle}
+    style: unifiedInputStyle
   };
   for (const input of inputs) {
     const onChange2 = input.onChange as any;
@@ -133,14 +152,27 @@ export const getUnifiedInputs = <T>(
       onChange?.();
     };
   }
-  return getInputInfoGroup([unifiedInput, ...inputs], {label: id, ...opts, inputStyle: {flex: "0 0 50%", ...inputStyle}});
+  let toolbarInputs: InputInfo[];
+  if (opts?.customToolbar) {
+    toolbarInputs = opts.customToolbar(unifiedInput);
+  } else {
+    toolbarInputs = [unifiedInput];
+  }
+  return getInputInfoGroup(
+    [getInputInfoGroup(toolbarInputs, {style: {flex: "0 0 100%"}, inputStyle: {flex: "0 0 auto", width: "auto"}}), ...inputs],
+    {
+      label: id,
+      ...opts,
+      inputStyle: {flex: "0 0 50%", ...inputStyle}
+    }
+  );
 };
 
 export type InputInfoWithDataPart<R extends InputInfo> = Omit<InputInfoPart<R>, "model" | "value">;
 export class InputInfoWithDataGetter<T> {
   constructor(
     public data: Value<T>,
-    public others?: Omit<InputInfoPart, "model" | "onChange">
+    public others?: Omit<InputInfoPart, "model">
   ) {}
 
   string(key: keyof T, others?: InputInfoWithDataPart<InputInfoString<T>>): InputInfoString<T> {

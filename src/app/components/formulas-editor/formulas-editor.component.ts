@@ -17,9 +17,14 @@ import {
 } from "@angular/core";
 import {ValidationErrors} from "@angular/forms";
 import {MatButtonModule} from "@angular/material/button";
+import {MatDialog} from "@angular/material/dialog";
 import {MatIconModule} from "@angular/material/icon";
+import {MatTooltipModule} from "@angular/material/tooltip";
 import {replaceChars, setGlobal} from "@app/app.common";
 import {CalcResult, Formulas} from "@app/utils/calc";
+import {openEditFormulasDialog} from "@components/dialogs/edit-formulas-dialog/edit-formulas-dialog.component";
+import {FormulasComponent} from "@components/formulas/formulas.component";
+import {FormulaInfo} from "@components/formulas/formulas.types";
 import {VarNamesComponent} from "@components/var-names/var-names.component";
 import {VarNameItem} from "@components/var-names/var-names.types";
 import {timeout} from "@lucilor/utils";
@@ -29,7 +34,7 @@ import {CalcService} from "@services/calc.service";
 import {isEmpty} from "lodash";
 import {NgScrollbar} from "ngx-scrollbar";
 import {InputComponent} from "../../modules/input/components/input.component";
-import {FormulasChangeEvent, FormulasValidatorFn} from "./formulas-editor.types";
+import {FormulasChangeEvent, FormulasCompactConfig, FormulasValidatorFn} from "./formulas-editor.types";
 
 @Component({
   selector: "app-formulas-editor",
@@ -39,10 +44,12 @@ import {FormulasChangeEvent, FormulasValidatorFn} from "./formulas-editor.types"
     CdkDrag,
     CdkDragHandle,
     CdkDropList,
+    FormulasComponent,
     forwardRef(() => InputComponent),
     KeyValuePipe,
     MatButtonModule,
     MatIconModule,
+    MatTooltipModule,
     NgScrollbar,
     NgTemplateOutlet,
     VarNamesComponent
@@ -51,9 +58,10 @@ import {FormulasChangeEvent, FormulasValidatorFn} from "./formulas-editor.types"
 })
 export class FormulasEditorComponent {
   private calc = inject(CalcService);
+  private dialog = inject(MatDialog);
   private message = inject(MessageService);
 
-  formulas = model<Formulas>({}, {alias: "formulas"});
+  formulas = model<Formulas | null | undefined>({alias: "formulas"});
   formulasTextIn = input("", {alias: "formulasText"});
   vars = input<Formulas>({});
   varNameItem = input<VarNameItem>();
@@ -62,7 +70,7 @@ export class FormulasEditorComponent {
   validator = input<FormulasValidatorFn>();
   noFormulasText = input(false, {transform: booleanAttribute});
   noScroll = input(false, {transform: booleanAttribute});
-  compact = input<{minRows?: number; maxRows?: number}>();
+  compact = model<FormulasCompactConfig>();
   dataName = input("公式");
 
   constructor() {
@@ -77,7 +85,7 @@ export class FormulasEditorComponent {
     this.extraInputInfos.update((v) => [...v]);
   }
 
-  formulaList = computed(() => Object.entries(this.formulas()).map(([k, v]) => [k, String(v)]));
+  formulaList = computed(() => Object.entries(this.formulas() || {}).map(([k, v]) => [k, String(v)]));
   formulaListInputInfos = computed(() => {
     const list = this.formulaList();
     const onChange = () => {
@@ -97,6 +105,10 @@ export class FormulasEditorComponent {
       this.formulasText.set(text);
     }
   });
+
+  toggleCompactEditOn() {
+    this.compact.update((v) => (v ? {...v, editOn: !v.editOn} : undefined));
+  }
   formulasInputInfo = computed(() => {
     const compact = this.compact();
     const info: InputInfo = {
@@ -126,6 +138,13 @@ export class FormulasEditorComponent {
     };
     return info;
   });
+  formulaInfos = computed(() =>
+    this.formulaList().map<FormulaInfo>(([key, value]) => ({keys: [{eq: true, name: key}], values: [{eq: true, name: value}]}))
+  );
+  async openEditFormulasDialog() {
+    const result = await openEditFormulasDialog(this.dialog, {data: {formulas: this.formulas()}});
+    console.log(result);
+  }
 
   parseFormulasText(text = this.formulasText()) {
     const list = text
@@ -233,7 +252,7 @@ export class FormulasEditorComponent {
       }
     }
     const errors = Array.from(errorsSet);
-    const calcPreResult = await this.calc.calcFormulasPre(this.formulas(), silent ? undefined : {});
+    const calcPreResult = await this.calc.calcFormulasPre(this.formulas() || {}, silent ? undefined : {});
     if (calcPreResult.error) {
       errors.push("计算有误");
     }

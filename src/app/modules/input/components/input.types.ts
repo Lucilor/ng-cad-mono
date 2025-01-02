@@ -208,8 +208,9 @@ export type InputInfo<T = any> =
   | InputInfoButton<T>
   | InputInfoList<T>
   | InputInfoGroup<T>;
-export type InputInfoPart<R extends InputInfo = InputInfo> = Partial<Omit<R, "type">>;
-export type InputInfoPart2<R extends InputInfo = InputInfo> = Partial<Omit<R, "type" | "onChange">>;
+export type InputInfoPart<R extends InputInfo = InputInfo> = Partial<Omit<R, "type" | "onChange">> & {
+  onChange?: (val: any, info: R) => void;
+};
 
 export type InputInfoOption<T = string> = {value: T; label?: string; disabled?: boolean; img?: string; vid?: number};
 

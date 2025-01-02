@@ -24,7 +24,7 @@
           <div class="gongshi-card item">
             <div class="toolbar compact">
               <div class="gongshi-name text long">{{ gongshi["名字"] }}</div>
-              @if (gongshiInfo().at(i)?.formulas) {
+              @if (gongshiInfo().at(i)?.compact?.editOn) {
                 <button mat-button color="primary" (click)="editGongshiEnd(i, null, true)">关闭编辑</button>
               } @else {
                 <button mat-button color="primary" (click)="editGongshiStart(i)">直接编辑</button>
@@ -36,20 +36,15 @@
             @if (slgsInfos()[i]; as info) {
               <app-text-info [infos]="info.textInfos"></app-text-info>
             }
-            <div class="gongshi-items" (dblclick)="editGongshiStart(i)">
-              @if (gongshiInfo().at(i)?.formulas; as formulas) {
-                <app-formulas-editor
-                  [formulas]="formulas"
-                  [compact]="{minRows: 5}"
-                  noScroll
-                  (formulasChange)="editGongshiEnd(i, $event)"
-                ></app-formulas-editor>
-              } @else {
-                @for (item of gongshi["公式"] | keyvalue: returnZero; track $index) {
-                  <div class="gongshi-item text-ellipsis" [matTooltip]="getGongshiStr(item)">{{ getGongshiStr(item) }}</div>
-                }
-              }
-            </div>
+            @if (gongshiInfo().at(i); as gongshiInfo) {
+              <app-formulas-editor
+                [formulas]="gongshiInfo.formulas"
+                [compact]="gongshiInfo.compact"
+                noScroll
+                (formulasChange)="editGongshiEnd(i, $event)"
+                (compactChange)="onFormulaCompactChange(i, $event)"
+              ></app-formulas-editor>
+            }
           </div>
         }
       </div>

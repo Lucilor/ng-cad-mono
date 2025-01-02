@@ -1,0 +1,42 @@
+.content {
+  height: 100%;
+  > * {
+    padding: 5px;
+    &:not(:last-child) {
+      padding-right: 0;
+    }
+  }
+
+  app-image {
+    width: 30%;
+    height: 100%;
+    padding: 5px;
+    box-sizing: border-box;
+    background: lightgray;
+  }
+
+  .item > app-input {
+    width: 100%;
+  }
+  .toolbar > app-input {
+    flex: 1 1 0;
+  }
+}
+
+.calc-content {
+  width: 30%;
+}
+
+.cad-container {
+  overflow: hidden;
+}
+
+.calc-result {
+  width: 100%;
+}
+
+.calc-config {
+  > * {
+    width: 100%;
+  }
+}

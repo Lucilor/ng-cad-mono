@@ -17,7 +17,21 @@
 }
 
 <ng-template #compactContent>
-  <app-input [info]="formulasInputInfo()"></app-input>
+  @if (compact(); as compact) {
+    @if (!compact.noToolbar) {
+      <div class="toolbar">
+        <button mat-button color="primary" (click)="toggleCompactEditOn()">{{ compact.editOn ? "关闭" : "直接" }}编辑</button>
+        <button mat-button color="primary" (click)="openEditFormulasDialog()">弹窗编辑</button>
+      </div>
+    }
+    <div style="padding: 5px">
+      @if (compact.editOn) {
+        <app-input [info]="formulasInputInfo()"></app-input>
+      } @else {
+        <app-formulas [formulaInfos]="formulaInfos()" (dblclick)="toggleCompactEditOn()"></app-formulas>
+      }
+    </div>
+  }
 </ng-template>
 
 <ng-template #content>
