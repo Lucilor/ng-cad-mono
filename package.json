@@ -117,7 +117,7 @@
     "karma-jasmine-html-reporter": "^2.1.0",
     "minimist": "^1.2.8",
     "prettier": "^3.4.2",
-    "typescript": "~5.5.4"
+    "typescript": "~5.7.2"
   },
   "packageManager": "yarn@4.5.3"
 }
